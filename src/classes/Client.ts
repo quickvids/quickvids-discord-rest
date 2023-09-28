@@ -74,7 +74,7 @@ export default class Client {
     }
 
     get inviteUrl() {
-        return `https://discord.com/oauth2/authorize?client_id=${this.id}&permissions=19456&scope=bot%20applications.commands`;
+        return `https://discord.com/oauth2/authorize?client_id=${this.id}&permissions=60416&scope=bot%20applications.commands`;
     }
 
     async getTopggVotes(): Promise<BotVote | null> {
