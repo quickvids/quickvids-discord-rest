@@ -18,6 +18,7 @@
     "discord-api-types": "^0.37.58",
     "discord-interactions": "^3.4.0",
     "discord-verify": "^1.2.0",
-    "fastify": "^4.23.2"
+    "fastify": "^4.23.2",
+    "mongoose": "^7.5.3"
   }
 }

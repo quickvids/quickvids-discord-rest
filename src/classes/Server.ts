@@ -18,6 +18,7 @@ import Client from "./Client";
 import crypto from "node:crypto";
 import { APIChatInputApplicationCommandInteractionWithEntitlements } from "../types/premium";
 import CommandContext from "./CommandContext";
+import Database from "./Database";
 
 const rateLimitConfig: RateLimitOptions = {
     max: 5,
@@ -28,18 +29,20 @@ export default class Server {
     port: number;
     console: Logger;
     router: FastifyInstance;
+    database: Database;
     client: Client;
 
-    constructor(port: number, client: Client) {
+    constructor(port: number, database: Database, client: Client) {
         this.port = port;
         this.console = new Logger("Server");
         this.router = fastify({ logger: false, trustProxy: true });
         this.client = client;
+        this.database = database;
     }
 
     async start(): Promise<void> {
         this.console.info("Starting server...");
-
+        await this.database.start();
         this.client.start();
 
         await this.router.register(fastifyRateLimit, { global: false });
