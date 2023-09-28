@@ -1,6 +1,6 @@
 import {
     APIApplicationCommandInteractionDataSubcommandGroupOption,
-    APIChatInputApplicationCommandInteractionDataResolved,
+    APIInteractionDataResolved,
     APIApplicationCommandInteractionDataSubcommandOption,
     APIChatInputApplicationCommandInteractionData,
     APIApplicationCommandInteractionDataOption,
@@ -16,7 +16,7 @@ import {
     MessageFlags,
     RESTPatchAPIInteractionFollowupJSONBody,
     APIChannel,
-} from "discord-api-types/v9";
+} from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
 import {
@@ -36,7 +36,7 @@ export default class CommandContext implements Context {
     command: { id: string; name: string; type: ApplicationCommandType };
     options: APIApplicationCommandInteractionDataOption[];
     args: (string | number | boolean)[];
-    resolved?: APIChatInputApplicationCommandInteractionDataResolved;
+    resolved?: APIInteractionDataResolved;
     applicationId: string;
     channelId: string;
     guildId?: string;

@@ -8,7 +8,7 @@ import {
     RESTGetAPIGuildResult,
     PermissionFlagsBits,
     RESTPatchAPIInteractionFollowupJSONBody,
-} from "discord-api-types/v9";
+} from "discord-api-types/v10";
 
 import { RESTGetAPIApplicationEntitlementsResult } from "../types/premium";
 import type Command from "./Command";
