@@ -1,0 +1,23 @@
+{
+  "name": "quickvids-discord-rest",
+  "module": "src/server.ts",
+  "scripts": {
+    "start": "bun run --watch src/index.ts",
+    "register": "bun run src/utils/register.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@fastify/rate-limit": "^8.0.3",
+    "chalk": "^5.3.0",
+    "discord-api-types": "^0.37.58",
+    "discord-interactions": "^3.4.0",
+    "discord-verify": "^1.2.0",
+    "fastify": "^4.23.2"
+  }
+}
