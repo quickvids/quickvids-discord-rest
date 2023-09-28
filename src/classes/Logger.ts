@@ -23,6 +23,8 @@ export default class Logger {
         //     content
         // );
         // above is not working so just print important info for now
+        if (typeof content === "object") content = JSON.stringify(content);
+
         console.log(`${type} ${this.prefix} ${content}`);
     }
 

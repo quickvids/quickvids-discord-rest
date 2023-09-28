@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { type Mongoose, type Model } from "mongoose";
 import Logger from "./Logger";
+import { BotStats } from "../database/schema";
 
 export default class Database {
     console: Logger;
@@ -21,5 +22,17 @@ export default class Database {
             dbName: this.dbName,
         });
         this.console.info("Connected to MongoDB!");
+    }
+
+    // bot_stats = await BotStats.find().sort(-BotStats.ts).limit(1).to_list()
+    async getBotStats(): Promise<BotStats> {
+        const stats = await BotStats.find().sort("-ts").limit(1).exec();
+        return stats[0];
+    }
+
+    async getDatabasePing(): Promise<number> {
+        const start = Date.now();
+        await this.db.connection.db.command({ ping: 1 });
+        return Date.now() - start;
     }
 }

@@ -8,6 +8,12 @@ import CommandContext from "./CommandContext";
 import * as functions from "./Functions";
 import Logger from "./Logger";
 import { readdirSync } from "fs";
+import Database from "./Database";
+
+type BotVote = {
+    points: number;
+    monthlyPoints: number;
+};
 
 export default class Client {
     id: string;
@@ -16,7 +22,9 @@ export default class Client {
     discordAPIUrl: string;
     functions: typeof functions;
     commands: Command[];
+    database: Database;
     console: Logger;
+    topggToken: string | null;
 
     static COLORS = {
         WHITE: 0xffffff,
@@ -32,11 +40,21 @@ export default class Client {
         BLUE: 0x3498db,
     } as const;
     static EMOTES = {
-        time: ":stopwatch:",
-        paddle: ":ping_pong:",
+        first_button: "<:first:1002702500345950248>",
+        last_button: "<:last:1002702499125403698>",
+        next_button: "<:next:1002702497200218204>",
+        back_button: "<:back:1002702496294240328>",
+        topgg: "<:topgg:918280202398875758>",
+        qv_heart: "<:quickvids_heart:1002702497992941659>",
     } as const;
 
-    constructor(id: string, token: string, publicKey: string) {
+    constructor(
+        id: string,
+        token: string,
+        publicKey: string,
+        database: Database,
+        topggToken: string | undefined
+    ) {
         this.id = id;
         this.token = token;
         this.publicKey = publicKey;
@@ -44,6 +62,8 @@ export default class Client {
         this.functions = functions;
         this.commands = [];
         this.console = new Logger("Client");
+        this.database = database;
+        this.topggToken = topggToken || null;
     }
 
     get COLORS() {
@@ -55,6 +75,24 @@ export default class Client {
 
     get inviteUrl() {
         return `https://discord.com/oauth2/authorize?client_id=${this.id}&permissions=19456&scope=bot%20applications.commands`;
+    }
+
+    async getTopggVotes(): Promise<BotVote | null> {
+        if (!this.topggToken) return null;
+        const response = await fetch(`https://top.gg/api/bots/${this.id}`, {
+            method: "GET",
+            headers: {
+                Authorization: this.topggToken,
+            },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            this.console.log(data);
+            return data as BotVote;
+        } else {
+            return null;
+        }
     }
 
     async handleCommand(ctx: CommandContext) {
