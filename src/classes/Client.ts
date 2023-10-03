@@ -9,6 +9,7 @@ import * as functions from "./Functions";
 import Logger from "./Logger";
 import { readdirSync } from "fs";
 import Database from "./Database";
+import TTRequester from "./TTRequester";
 
 type BotVote = {
     points: number;
@@ -23,6 +24,7 @@ export default class Client {
     functions: typeof functions;
     commands: Command[];
     database: Database;
+    ttrequester: TTRequester;
     console: Logger;
     topggToken: string | null;
 
@@ -53,7 +55,8 @@ export default class Client {
         token: string,
         publicKey: string,
         database: Database,
-        topggToken: string | undefined
+        topggToken: string | undefined,
+        ttrequester: TTRequester
     ) {
         this.id = id;
         this.token = token;
@@ -64,6 +67,7 @@ export default class Client {
         this.console = new Logger("Client");
         this.database = database;
         this.topggToken = topggToken || null;
+        this.ttrequester = ttrequester;
     }
 
     get COLORS() {
@@ -127,13 +131,10 @@ export default class Client {
                 (await import(`../commands/${commandFileName}`)).default
             );
             if (typeof commandFile.default_member_permissions === "undefined")
-                commandFile.default_member_permissions = commandFile.perms
-                    .length
+                commandFile.default_member_permissions = commandFile.perms.length
                     ? commandFile.perms
                           .map((perm) =>
-                              typeof perm === "bigint"
-                                  ? perm
-                                  : PermissionFlagsBits[perm]
+                              typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]
                           )
                           .reduce((a, c) => a | c, 0n)
                           .toString()
@@ -169,10 +170,7 @@ export default class Client {
             if (devMode)
                 this.console.log(
                     `GuildOnly Commands (${guildId}): ` +
-                        ((await this.compareCommands(
-                            guildOnly[guildId],
-                            guildId
-                        ))
+                        ((await this.compareCommands(guildOnly[guildId], guildId))
                             ? "Changes detected"
                             : "No changes detected")
                 );
@@ -180,10 +178,7 @@ export default class Client {
         }
     }
 
-    async compareCommands(
-        commands: Command[],
-        guildId?: string
-    ): Promise<boolean> {
+    async compareCommands(commands: Command[], guildId?: string): Promise<boolean> {
         const response = await fetch(
             `${this.discordAPIUrl}/applications/${this.id}${
                 guildId ? `/guilds/${guildId}` : ""
