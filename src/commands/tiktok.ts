@@ -34,8 +34,9 @@ const tiktok: InteractionCommand = {
         const linkData = await checkForTikTokLink(link.value, true);
 
         if (linkData === null) {
+            const error_code = "7nVqDXkrHG";
             return ctx.reply(
-                `The link you provided if not supported. \nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/7nVqDXkrHG>)`,
+                `The link you provided if not supported. \nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
                 {
                     ephemeral: true,
                 }
@@ -45,8 +46,9 @@ const tiktok: InteractionCommand = {
         const tiktokData = await ctx.client.ttrequester.fetchPostInfo(linkData.id);
 
         if (tiktokData === null) {
+            const error_code = "7nVqDXkrHG";
             return ctx.reply(
-                `The link you provided if not supported. \nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/7nVqDXkrHG>)`,
+                `The link you provided if not supported. \nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
                 {
                     ephemeral: true,
                 }

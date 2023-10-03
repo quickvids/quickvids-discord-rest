@@ -52,20 +52,23 @@ export default class TTRequester {
             if (!data) return null;
 
             if (data.status_code !== 0) {
+                const error_code = "DbrqXPgP4G";
                 return new Error(
-                    `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/DbrqXPgP4G>)`
+                    `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
                 );
             }
 
             if (!data.aweme_detail) {
+                const error_code = "QNkBD4zzzA";
                 return new Error(
-                    `This TikTok is not available.\n\nThis could be because the TikTok was deleted, the owner of the TikTok has a private account, or the TikTok is under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/QNkBD4zzzA>)`
+                    `This TikTok is not available.\n\nThis could be because the TikTok was deleted, the owner of the TikTok has a private account, or the TikTok is under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
                 );
             }
         } catch (e) {
             this.console.error(e);
+            const error_code = "WrkKanvMfC";
             return new Error(
-                `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/WrkKanvMfC>)`
+                `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
             );
         }
 
