@@ -4,7 +4,7 @@ import {
     RESTPostAPIWebhookWithTokenJSONBody,
 } from "discord-api-types/v10";
 import Command, { ApplicationCommandContext } from "./Command";
-import CommandContext from "./CommandContext";
+import { SlashCommandContext, ContextMenuContext } from "./CommandContext";
 import * as functions from "./Functions";
 import Logger from "./Logger";
 import { readdirSync } from "fs";
@@ -99,7 +99,7 @@ export default class Client {
         }
     }
 
-    async handleCommand(ctx: CommandContext) {
+    async handleCommand(ctx: SlashCommandContext | ContextMenuContext) {
         const command = this.commands.find((c) => c.name === ctx.command.name);
         if (!command)
             return this.console.error(

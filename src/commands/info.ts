@@ -1,20 +1,22 @@
-import type Command from "../classes/Command";
-import type Context from "../classes/Context";
+// import type Command from "../classes/Command";
+import { ApplicationCommandType } from "discord-api-types/v10";
+import type InteractionCommand from "../classes/Command";
+import { SlashCommandContext } from "../classes/CommandContext";
 
-const info: Command = {
+const info: InteractionCommand = {
+    type: ApplicationCommandType.ChatInput,
     name: "info",
-    description:
-        "Here is some general information and statistics about QuickVids.",
+    description: "Here is some general information and statistics about QuickVids.",
     perms: [],
-    run: async (ctx: Context): Promise<void> => {
+    // @ts-expect-error
+    run: async (ctx: SlashCommandContext): Promise<void> => {
         const stats = await ctx.client.database.getBotStats();
         const since = new Date().setHours(0, 0, 0, 0);
         const timestamp = `<t:${Math.floor(since / 1000)}:R>`;
 
         let embed = {
             title: "QuickVids Info",
-            description:
-                "Here is some general information and statistics about QuickVids.",
+            description: "Here is some general information and statistics about QuickVids.",
             color: 0x5865f2, // Hex color code
             fields: [
                 {
@@ -44,9 +46,7 @@ const info: Command = {
                 },
                 {
                     name: "Ping 🏓",
-                    value: `${(
-                        await ctx.client.database.getDatabasePing()
-                    ).toFixed(0)}ms`,
+                    value: `${(await ctx.client.database.getDatabasePing()).toFixed(0)}ms`,
                     inline: true,
                 },
             ],

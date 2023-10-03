@@ -1,5 +1,6 @@
 import {
     APIChatInputApplicationCommandInteraction,
+    APIMessageApplicationCommandInteraction,
     APIMessageComponentInteraction,
     APIModalSubmitInteraction,
 } from "discord-api-types/v10";
@@ -9,15 +10,17 @@ export type APIChatInputApplicationCommandInteractionWithEntitlements =
         entitlements?: APIApplicationEntitlement[];
     };
 
-export type APIMessageComponentInteractionWithEntitlements =
-    APIMessageComponentInteraction & {
-        entitlements?: APIApplicationEntitlement[];
-    };
+export type APIContextMenuInteractionWithEntitlements = APIMessageApplicationCommandInteraction & {
+    entitlements?: APIApplicationEntitlement[];
+};
 
-export type APIModalSubmitInteractionWithEntitlements =
-    APIModalSubmitInteraction & {
-        entitlements?: APIApplicationEntitlement[];
-    };
+export type APIMessageComponentInteractionWithEntitlements = APIMessageComponentInteraction & {
+    entitlements?: APIApplicationEntitlement[];
+};
+
+export type APIModalSubmitInteractionWithEntitlements = APIModalSubmitInteraction & {
+    entitlements?: APIApplicationEntitlement[];
+};
 
 export type APIApplicationEntitlement = {
     id: string;
@@ -35,5 +38,4 @@ export type APIApplicationEntitlement = {
     subscription_id: string;
 };
 
-export type RESTGetAPIApplicationEntitlementsResult =
-    APIApplicationEntitlement[];
+export type RESTGetAPIApplicationEntitlementsResult = APIApplicationEntitlement[];

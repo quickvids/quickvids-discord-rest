@@ -1,10 +1,5 @@
 import Logger from "./Logger";
-import {
-    fastify,
-    FastifyInstance,
-    FastifyReply,
-    FastifyRequest,
-} from "fastify";
+import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fastifyRateLimit, { RateLimitOptions } from "@fastify/rate-limit";
 import {
     APIInteraction,
@@ -16,9 +11,12 @@ import { verify } from "discord-verify/node";
 import Client from "./Client";
 
 import crypto from "node:crypto";
-import { APIChatInputApplicationCommandInteractionWithEntitlements } from "../types/premium";
-import CommandContext from "./CommandContext";
+import {
+    APIChatInputApplicationCommandInteractionWithEntitlements,
+    APIContextMenuInteractionWithEntitlements,
+} from "../types/premium";
 import Database from "./Database";
+import { ContextMenuContext, SlashCommandContext } from "./CommandContext";
 
 const rateLimitConfig: RateLimitOptions = {
     max: 5,
@@ -48,13 +46,10 @@ export default class Server {
         await this.router.register(fastifyRateLimit, { global: false });
         this.registerRoutes();
 
-        this.router.listen(
-            { port: this.port, host: "0.0.0.0" },
-            (err, address) => {
-                if (err) throw err;
-                this.console.success(`Listening for requests at ${address}!`);
-            }
-        );
+        this.router.listen({ port: this.port, host: "0.0.0.0" }, (err, address) => {
+            if (err) throw err;
+            this.console.success(`Listening for requests at ${address}!`);
+        });
     }
 
     registerRoutes() {
@@ -96,17 +91,22 @@ export default class Server {
         if (interaction.type === InteractionType.Ping)
             return res.send({ type: InteractionResponseType.Pong });
 
-        if (
-            interaction.type === InteractionType.ApplicationCommand &&
-            interaction.data.type === ApplicationCommandType.ChatInput
-        ) {
-            // If the interaction is a slash command
-            const ctx = new CommandContext(
-                interaction as APIChatInputApplicationCommandInteractionWithEntitlements,
-                this.client,
-                res
-            );
-            await this.client.handleCommand(ctx);
+        if (interaction.type === InteractionType.ApplicationCommand) {
+            if (interaction.data.type === ApplicationCommandType.ChatInput) {
+                const ctx = new SlashCommandContext(
+                    interaction as APIChatInputApplicationCommandInteractionWithEntitlements,
+                    this.client,
+                    res
+                );
+                await this.client.handleCommand(ctx);
+            } else if (interaction.data.type === ApplicationCommandType.Message) {
+                const ctx = new ContextMenuContext(
+                    interaction as APIContextMenuInteractionWithEntitlements,
+                    this.client,
+                    res
+                );
+                await this.client.handleCommand(ctx);
+            }
         }
         // else if (
         //     interaction.type === InteractionType.MessageComponent &&

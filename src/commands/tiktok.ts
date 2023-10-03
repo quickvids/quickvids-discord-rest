@@ -1,9 +1,10 @@
-import { APIInteractionDataOptionBase } from "discord-api-types/v10";
-import type Command from "../classes/Command";
-import type Context from "../classes/Context";
+import { APIInteractionDataOptionBase, ApplicationCommandType } from "discord-api-types/v10";
 import { checkForTikTokLink, getGuildConfig } from "../classes/Functions";
+import InteractionCommand from "../classes/Command";
+import { SlashCommandContext } from "../classes/CommandContext";
 
-const tiktok: Command = {
+const tiktok: InteractionCommand = {
+    type: ApplicationCommandType.ChatInput,
     name: "tiktok",
     description: "Convert a TikTok link into a video.",
     options: [
@@ -21,7 +22,8 @@ const tiktok: Command = {
         },
     ],
     perms: [],
-    run: async (ctx: Context): Promise<void> => {
+    // @ts-expect-error
+    run: async (ctx: SlashCommandContext): Promise<void> => {
         const link = ctx.getOption("link") as APIInteractionDataOptionBase<3, string>;
         let spoiler = ctx.getOption("spoiler") as APIInteractionDataOptionBase<5, boolean>;
         const guildConfig = await getGuildConfig(ctx.guildId!);

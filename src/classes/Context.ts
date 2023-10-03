@@ -1,10 +1,10 @@
 import type {
     APIInteractionDataResolved,
     APIInteractionResponseCallbackData,
-    APIApplicationCommandOption,
     APIInteractionGuildMember,
     APIUser,
     RESTPatchAPIInteractionFollowupJSONBody,
+    APIMessageApplicationCommandInteractionDataResolved,
 } from "discord-api-types/v10";
 
 import { OptionType } from "./OptionTypes";
@@ -13,8 +13,7 @@ import { APIApplicationEntitlement } from "../types/premium";
 
 export default interface Context {
     client: Client;
-    args: (string | number | boolean)[];
-    resolved?: APIInteractionDataResolved;
+    resolved?: APIInteractionDataResolved | APIMessageApplicationCommandInteractionDataResolved;
     channelId: string;
     guildId?: string;
     member?: APIInteractionGuildMember;
@@ -22,15 +21,10 @@ export default interface Context {
     appPermissions?: string;
     entitlements?: APIApplicationEntitlement[];
 
-    getOption<O extends APIApplicationCommandOption>(
-        name: string
-    ): OptionType<O> | undefined;
+    // getOption<O extends APIApplicationCommandOption>(name: string): OptionType<O> | undefined;
     reply(
         data: string | APIInteractionResponseCallbackData,
         options?: { ephemeral?: boolean }
     ): void;
-    editResponse(
-        data: string | RESTPatchAPIInteractionFollowupJSONBody,
-        messageId?: string
-    ): void;
+    editResponse(data: string | RESTPatchAPIInteractionFollowupJSONBody, messageId?: string): void;
 }

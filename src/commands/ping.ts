@@ -1,11 +1,14 @@
-import type Command from "../classes/Command";
-import type Context from "../classes/Context";
+import { ApplicationCommandType } from "discord-api-types/v10";
+import type InteractionCommand from "../classes/Command";
+import { SlashCommandContext } from "../classes/CommandContext";
 
-const ping: Command = {
+const ping: InteractionCommand = {
+    type: ApplicationCommandType.ChatInput,
     name: "ping",
     description: "Check if the bot is online.",
     perms: [],
-    run: async (ctx: Context): Promise<void> => {
+    // @ts-expect-error
+    run: async (ctx: SlashCommandContext): Promise<void> => {
         return ctx.reply({
             embeds: [
                 {
