@@ -11,8 +11,8 @@ import {
 } from "discord-api-types/v10";
 
 import { RESTGetAPIApplicationEntitlementsResult } from "../types/premium";
-import type Command from "./Command";
-import type Context from "./Context";
+import type InteractionCommand from "./ApplicationCommand";
+import type OLDContext from "./Context";
 
 import { GuildConfig, Shortener } from "../database/schema";
 import { randomBytes } from "crypto";
@@ -20,34 +20,6 @@ import { randomBytes } from "crypto";
 export type Permission =
     | keyof typeof PermissionFlagsBits
     | (typeof PermissionFlagsBits)[keyof typeof PermissionFlagsBits];
-
-// bad design with side effect & return type
-export function checkPerms(command: Command, ctx: Context) {
-    if (!ctx.member) return true;
-    const required = command.perms
-        .map((perm) => (typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]))
-        .reduce((a, c) => a | c, 0n);
-    const missing = required & ~BigInt(ctx.member.permissions);
-    const missingNames = Object.keys(PermissionFlagsBits).filter(
-        (key) => PermissionFlagsBits[key as keyof typeof PermissionFlagsBits] & missing
-    );
-    if (missing) {
-        ctx.reply({
-            embeds: [
-                {
-                    title: "Missing Permissions",
-                    description: `You are missing the following permissions: ${missingNames
-                        .map((name) => `\`${name}\``)
-                        .join(", ")}`,
-                    color: 0xff0000,
-                },
-            ],
-            flags: 1 << 6,
-        });
-        return false;
-    }
-    return true;
-}
 
 export function hasPermission(permission: Permission, permissions?: string) {
     if (!permissions) return true;

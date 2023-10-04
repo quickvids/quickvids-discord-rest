@@ -1,15 +1,16 @@
 import {
     APIApplicationCommand,
+    ApplicationCommandType,
     PermissionFlagsBits,
     RESTPostAPIWebhookWithTokenJSONBody,
 } from "discord-api-types/v10";
-import Command, { ApplicationCommandContext } from "./Command";
-import { SlashCommandContext, ContextMenuContext } from "./CommandContext";
 import * as functions from "./Functions";
 import Logger from "./Logger";
 import { readdirSync } from "fs";
 import Database from "./Database";
 import TTRequester from "./TTRequester";
+import InteractionContext from "./Context";
+import InteractionCommand, { ContextMenu, SlashCommand } from "./ApplicationCommand";
 
 type BotVote = {
     points: number;
@@ -22,7 +23,7 @@ export default class Client {
     publicKey: string;
     discordAPIUrl: string;
     functions: typeof functions;
-    commands: Command[];
+    commands: InteractionCommand[];
     database: Database;
     ttrequester: TTRequester;
     console: Logger;
@@ -99,13 +100,12 @@ export default class Client {
         }
     }
 
-    async handleCommand(ctx: SlashCommandContext | ContextMenuContext) {
+    async handleCommand(ctx: InteractionContext) {
         const command = this.commands.find((c) => c.name === ctx.command.name);
         if (!command)
             return this.console.error(
                 `Command ${ctx.command.name} was run with no corresponding command file.`
             );
-        if (!this.functions.checkPerms(command, ctx)) return;
 
         try {
             await command.run(ctx);
@@ -124,32 +124,18 @@ export default class Client {
         const commandFileNames = readdirSync(`${__dirname}/../commands`).filter(
             (f) => f.endsWith(".ts") || f.endsWith(".js")
         );
-        const globalCommands: Command[] = [];
-        const guildOnly: { [id: string]: Command[] } = {};
+        const globalCommands: InteractionCommand[] = [];
+        const guildOnly: { [id: string]: InteractionCommand[] } = {};
         for (const commandFileName of commandFileNames) {
-            const commandFile: Command = this.functions.deepCopy(
+            const commandFile: InteractionCommand = this.functions.deepCopy(
                 (await import(`../commands/${commandFileName}`)).default
             );
-            if (typeof commandFile.default_member_permissions === "undefined")
-                commandFile.default_member_permissions = commandFile.perms.length
-                    ? commandFile.perms
-                          .map((perm) =>
-                              typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]
-                          )
-                          .reduce((a, c) => a | c, 0n)
-                          .toString()
-                    : null;
-            if (typeof commandFile.contexts === "undefined")
-                commandFile.contexts = [
-                    ApplicationCommandContext.Guild,
-                    ApplicationCommandContext.BotDM,
-                    // ApplicationCommandContext.PrivateChannel,
-                ]; // Enables for guilds and bot-user DMs by default
+            this.console.log(`Loaded command ${commandFile.name}`);
             this.commands.push(commandFile);
-            if (!commandFile.guildId) {
+            if (!commandFile.scopes || commandFile.scopes.length === 0) {
                 globalCommands.push(commandFile);
             } else {
-                commandFile.guildId.forEach((guildId) => {
+                commandFile.scopes.forEach((guildId) => {
                     if (!(guildId in guildOnly)) guildOnly[guildId] = [];
                     guildOnly[guildId].push(commandFile);
                 });
@@ -178,36 +164,11 @@ export default class Client {
         }
     }
 
-    async compareCommands(commands: Command[], guildId?: string): Promise<boolean> {
-        const response = await fetch(
-            `${this.discordAPIUrl}/applications/${this.id}${
-                guildId ? `/guilds/${guildId}` : ""
-            }/commands`,
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bot ${this.token}`,
-                },
-            }
-        );
-        if (response.ok) {
-            const commandList: APIApplicationCommand[] = await response.json();
-            return commands.some(
-                (com) =>
-                    !this.functions.deepEquals(
-                        com,
-                        commandList.find((c) => c.name === com.name),
-                        ["category", "perms", "run", "guildId"]
-                    )
-            );
-        } else {
-            return false;
-        }
-    }
-
-    async updateCommands(commands: Command[], guildId?: string) {
+    async updateCommands(commands: InteractionCommand[], guildId?: string) {
         if (!(await this.compareCommands(commands, guildId))) return;
         this.console.log("Updating commands...");
+
+        const commandsData = commands.map(this.convertCommandToDiscordFormat).filter(Boolean);
 
         await fetch(
             `${this.discordAPIUrl}/applications/${this.id}${
@@ -219,17 +180,96 @@ export default class Client {
                     Authorization: `Bot ${this.token}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(
-                    commands.map((c) => ({
-                        ...c,
-                        perms: undefined,
-                        guild_id: guildId,
-                    }))
-                ),
+                body: JSON.stringify(commandsData),
             }
         );
 
-        this.console.success(`Updated ${this.commands.length} slash commands`);
+        this.console.success(`Updated ${commandsData.length} slash commands`);
+    }
+    async compareCommands(commands: InteractionCommand[], guildId?: string): Promise<boolean> {
+        const response = await fetch(
+            `${this.discordAPIUrl}/applications/${this.id}${
+                guildId ? `/guilds/${guildId}` : ""
+            }/commands`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bot ${this.token}`,
+                },
+            }
+        );
+
+        if (response.ok) {
+            const commandList: APIApplicationCommand[] = await response.json();
+
+            // Compare the fetched commands with the provided commands
+            return commands.some((com) => {
+                const matchingCommand = commandList.find((c) => c.name === com.name);
+                if (!matchingCommand) {
+                    return true; // Command doesn't exist in Discord
+                }
+
+                // Convert the provided command to Discord format for comparison
+                const providedCommandData = this.convertCommandToDiscordFormat(com);
+
+                if (!providedCommandData) {
+                    return false; // Unable to convert provided command, consider it unchanged
+                }
+
+                // Compare only the fields that clients can change
+                return (
+                    providedCommandData.type !== matchingCommand.type ||
+                    providedCommandData.dm_permission !== matchingCommand.dm_permission ||
+                    providedCommandData.default_member_permissions !==
+                        matchingCommand.default_member_permissions ||
+                    providedCommandData.nsfw !== matchingCommand.nsfw
+                );
+            });
+        } else {
+            return false;
+        }
+    }
+
+    convertCommandToDiscordFormat(command: InteractionCommand): any {
+        if (command.type === ApplicationCommandType.ChatInput) {
+            let _command = command as SlashCommand;
+            return {
+                type: _command.type,
+                name: _command.name,
+                description: _command.description || "No description set",
+                options: _command.options,
+                dm_permission: _command.dmPermission,
+                nsfw: _command.nsfw ?? false,
+                default_member_permissions: _command.defaultMemberPermissions.length
+                    ? _command.defaultMemberPermissions
+                          .map((perm) =>
+                              typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]
+                          )
+                          .reduce((a, c) => a | c, 0n)
+                          .toString()
+                    : null,
+            };
+        } else if (
+            command.type === ApplicationCommandType.Message ||
+            command.type === ApplicationCommandType.User
+        ) {
+            let _command = command as ContextMenu;
+            return {
+                type: _command.type,
+                name: _command.name,
+                dm_permission: _command.dmPermission,
+                nsfw: _command.nsfw ?? false,
+                default_member_permissions: _command.defaultMemberPermissions.length
+                    ? _command.defaultMemberPermissions
+                          .map((perm) =>
+                              typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]
+                          )
+                          .reduce((a, c) => a | c, 0n)
+                          .toString()
+                    : null,
+            };
+        }
+        return null; // Handle other cases if needed
     }
 
     async webhookLog(type: string, data: RESTPostAPIWebhookWithTokenJSONBody) {
@@ -240,5 +280,9 @@ export default class Client {
             },
             body: JSON.stringify(data),
         }).catch((_) => null);
+    }
+
+    getCommand(name: string) {
+        return this.commands.find((c) => c.name === name);
     }
 }

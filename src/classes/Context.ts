@@ -1,30 +1,24 @@
 import type {
-    APIInteractionDataResolved,
-    APIInteractionResponseCallbackData,
     APIInteractionGuildMember,
     APIUser,
-    RESTPatchAPIInteractionFollowupJSONBody,
-    APIMessageApplicationCommandInteractionDataResolved,
+    APIBaseInteraction,
+    InteractionType,
+    Snowflake,
 } from "discord-api-types/v10";
 
-import { OptionType } from "./OptionTypes";
 import type Client from "./Client";
 import { APIApplicationEntitlement } from "../types/premium";
+import InteractionCommand from "./ApplicationCommand";
 
-export default interface Context {
+export default interface InteractionContext
+    extends APIBaseInteraction<InteractionType.ApplicationCommand, any> {
     client: Client;
-    resolved?: APIInteractionDataResolved | APIMessageApplicationCommandInteractionDataResolved;
-    channelId: string;
-    guildId?: string;
+    command: InteractionCommand;
+    authorID: Snowflake;
+    guildId?: Snowflake;
+    channelId: Snowflake;
     member?: APIInteractionGuildMember;
     user: APIUser;
     appPermissions?: string;
     entitlements?: APIApplicationEntitlement[];
-
-    // getOption<O extends APIApplicationCommandOption>(name: string): OptionType<O> | undefined;
-    reply(
-        data: string | APIInteractionResponseCallbackData,
-        options?: { ephemeral?: boolean }
-    ): void;
-    editResponse(data: string | RESTPatchAPIInteractionFollowupJSONBody, messageId?: string): void;
 }

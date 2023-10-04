@@ -1,13 +1,16 @@
 import { ApplicationCommandType } from "discord-api-types/v10";
-import type InteractionCommand from "../classes/Command";
 import { SlashCommandContext } from "../classes/CommandContext";
+import { SlashCommand } from "../classes/ApplicationCommand";
 
-const ping: InteractionCommand = {
+const ping: SlashCommand = {
     type: ApplicationCommandType.ChatInput,
     name: "ping",
     description: "Check if the bot is online.",
-    perms: [],
-    // @ts-expect-error
+    defaultMemberPermissions: [],
+    dmPermission: true,
+    nsfw: false,
+    options: [],
+    scopes: [],
     run: async (ctx: SlashCommandContext): Promise<void> => {
         return ctx.reply({
             embeds: [

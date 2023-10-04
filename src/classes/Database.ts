@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { type Mongoose, type Model } from "mongoose";
+import { type Mongoose } from "mongoose";
 import Logger from "./Logger";
 import { BotStats } from "../database/schema";
 

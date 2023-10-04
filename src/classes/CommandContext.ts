@@ -10,7 +10,6 @@ import {
     APIApplicationCommandOption,
     APIInteractionGuildMember,
     InteractionResponseType,
-    ApplicationCommandType,
     APIUser,
     APIModalInteractionResponseCallbackData,
     MessageFlags,
@@ -19,6 +18,8 @@ import {
     APIMessageApplicationCommandInteractionData,
     APIContextMenuInteraction,
     APIMessageApplicationCommandInteractionDataResolved,
+    Snowflake,
+    InteractionType,
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
@@ -28,24 +29,31 @@ import {
     APIContextMenuInteractionWithEntitlements,
 } from "../types/premium";
 import type { OptionType } from "./OptionTypes";
-import type Context from "./Context";
+import type InteractionContext from "./Context";
 import type Client from "./Client";
+import InteractionCommand from "./ApplicationCommand";
 
-export class SlashCommandContext implements Context {
+export class SlashCommandContext implements InteractionContext {
     rawInteraction: APIApplicationCommandInteraction;
     rawData: APIChatInputApplicationCommandInteractionData;
     token: string;
     response: FastifyReply;
     client: Client;
-    command: { id: string; name: string; type: ApplicationCommandType };
+    command: InteractionCommand;
     options: APIApplicationCommandInteractionDataOption[];
     args: (string | number | boolean)[];
     resolved?: APIInteractionDataResolved;
     applicationId: string;
-    channelId: string;
-    guildId?: string;
+    channelId: Snowflake;
+    guildId?: Snowflake;
     member?: APIInteractionGuildMember;
     user: APIUser;
+    authorID: Snowflake;
+    id: Snowflake;
+    application_id: Snowflake;
+    type: InteractionType.ApplicationCommand;
+    version;
+    locale;
     entitlements?: APIApplicationEntitlement[];
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
@@ -61,13 +69,16 @@ export class SlashCommandContext implements Context {
         this.response = response;
         this.client = client;
 
-        this.command = {
-            id: interaction.data.id,
-            name: interaction.data.name,
-            type: interaction.data.type,
-        };
+        this.id = interaction.id;
+        this.authorID = interaction.member?.user?.id || interaction.user!.id;
+        this.application_id = interaction.application_id;
+        this.type = interaction.type;
+        this.version = interaction.version;
+        this.locale = interaction.locale;
 
+        this.command = this.client.getCommand(interaction.data.name)!;
         this.options = interaction.data.options || [];
+
         this.args = this.options.map((o) =>
             o.type === ApplicationCommandOptionType.Subcommand ||
             o.type === ApplicationCommandOptionType.SubcommandGroup
@@ -155,22 +166,28 @@ export class SlashCommandContext implements Context {
     }
 }
 
-export class ContextMenuContext implements Context {
+export class ContextMenuContext implements InteractionContext {
     rawInteraction: APIContextMenuInteraction;
     rawData: APIMessageApplicationCommandInteractionData;
     token: string;
     response: FastifyReply;
     client: Client;
-    command: { id: string; name: string; type: ApplicationCommandType };
+    command: InteractionCommand;
     resolved?: APIMessageApplicationCommandInteractionDataResolved;
-    applicationId: string;
-    channelId: string;
-    guildId?: string;
+    applicationId: Snowflake;
+    channelId: Snowflake;
+    guildId?: Snowflake;
     member?: APIInteractionGuildMember;
     user: APIUser;
     entitlements?: APIApplicationEntitlement[];
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
+    authorID: Snowflake;
+    id: Snowflake;
+    application_id: Snowflake;
+    type: InteractionType.ApplicationCommand;
+    version;
+    locale;
 
     constructor(
         // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
@@ -184,11 +201,14 @@ export class ContextMenuContext implements Context {
         this.response = response;
         this.client = client;
 
-        this.command = {
-            id: interaction.data.id,
-            name: interaction.data.name,
-            type: interaction.data.type,
-        };
+        this.id = interaction.id;
+        this.authorID = interaction.member?.user?.id || interaction.user!.id;
+        this.application_id = interaction.application_id;
+        this.type = interaction.type;
+        this.version = interaction.version;
+        this.locale = interaction.locale;
+
+        this.command = this.client.getCommand(interaction.data.name)!;
 
         this.resolved = interaction.data.resolved;
         this.appPermissions = interaction.app_permissions;

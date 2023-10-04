@@ -1,12 +1,14 @@
 import { ApplicationCommandType } from "discord-api-types/v10";
-import type InteractionCommand from "../classes/Command";
 import { ContextMenuContext } from "../classes/CommandContext";
+import { ContextMenu } from "../classes/ApplicationCommand";
 
-const say: InteractionCommand = {
+const say: ContextMenu = {
     type: ApplicationCommandType.Message,
-    name: "Say 🙊",
-    perms: [],
-    // @ts-expect-error
+    name: "Say",
+    defaultMemberPermissions: [],
+    dmPermission: false,
+    nsfw: false,
+    scopes: [],
     run: async (ctx: ContextMenuContext): Promise<void> => {
         const messageId = Object.keys(ctx.resolved?.messages ?? {})[0];
         const message = ctx.resolved?.messages?.[messageId];

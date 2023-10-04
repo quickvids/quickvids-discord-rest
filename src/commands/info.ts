@@ -1,14 +1,17 @@
 // import type Command from "../classes/Command";
 import { ApplicationCommandType } from "discord-api-types/v10";
-import type InteractionCommand from "../classes/Command";
 import { SlashCommandContext } from "../classes/CommandContext";
+import { SlashCommand } from "../classes/ApplicationCommand";
 
-const info: InteractionCommand = {
+const info: SlashCommand = {
     type: ApplicationCommandType.ChatInput,
     name: "info",
     description: "Here is some general information and statistics about QuickVids.",
-    perms: [],
-    // @ts-expect-error
+    defaultMemberPermissions: [],
+    dmPermission: true,
+    nsfw: false,
+    options: [],
+    scopes: [],
     run: async (ctx: SlashCommandContext): Promise<void> => {
         const stats = await ctx.client.database.getBotStats();
         const since = new Date().setHours(0, 0, 0, 0);
