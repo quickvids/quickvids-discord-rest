@@ -11,6 +11,7 @@ import Database from "./Database";
 import TTRequester from "./TTRequester";
 import InteractionContext from "./Context";
 import InteractionCommand, { ContextMenu, SlashCommand } from "./ApplicationCommand";
+import { AutocompleteContext } from "./CommandContext";
 
 type BotVote = {
     points: number;
@@ -109,6 +110,27 @@ export default class Client {
 
         try {
             await command.run(ctx);
+        } catch (err) {
+            this.console.error(err);
+        }
+    }
+
+    async handleAutocomplete(ctx: AutocompleteContext) {
+        const commandName = ctx.data?.name;
+        const command = this.commands.find((c) => c.name === commandName) as SlashCommand;
+        if (!command)
+            return this.console.error(
+                `Command /${commandName} was run with no corresponding command file.`
+            );
+
+        try {
+            if (command.autocompleteCallback) {
+                await command.autocompleteCallback(ctx);
+            } else {
+                this.console.error(
+                    `Command /${command.name} was run with no corresponding autocomplete function.`
+                );
+            }
         } catch (err) {
             this.console.error(err);
         }

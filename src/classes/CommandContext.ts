@@ -20,10 +20,12 @@ import {
     APIMessageApplicationCommandInteractionDataResolved,
     Snowflake,
     InteractionType,
+    APIApplicationCommandOptionChoice,
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
 import {
+    APIApplicationCommandAutocompleteInteractionWithEntitlements,
     APIApplicationEntitlement,
     APIChatInputApplicationCommandInteractionWithEntitlements,
     APIContextMenuInteractionWithEntitlements,
@@ -32,6 +34,7 @@ import type { OptionType } from "./OptionTypes";
 import type InteractionContext from "./Context";
 import type Client from "./Client";
 import InteractionCommand from "./ApplicationCommand";
+import { APIApplicationCommandAutocompleteInteraction, AutocompleteData } from "../types/discord";
 
 export class SlashCommandContext implements InteractionContext {
     rawInteraction: APIApplicationCommandInteraction;
@@ -251,5 +254,69 @@ export class ContextMenuContext implements InteractionContext {
             this.token,
             messageId
         );
+    }
+}
+
+export class AutocompleteContext implements APIApplicationCommandAutocompleteInteraction {
+    rawInteraction: APIApplicationCommandAutocompleteInteraction;
+    data: AutocompleteData;
+    token: string;
+    response: FastifyReply;
+    client: Client;
+    command: InteractionCommand;
+    applicationId: Snowflake;
+    channelId?: Snowflake;
+    guildId?: Snowflake;
+    member?: APIInteractionGuildMember;
+    user: APIUser;
+    entitlements?: APIApplicationEntitlement[];
+    appPermissions?: string;
+    channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
+    authorID: Snowflake;
+    id: Snowflake;
+    application_id: Snowflake;
+    type: number;
+    version;
+    locale;
+
+    constructor(
+        interaction: APIApplicationCommandAutocompleteInteractionWithEntitlements,
+        client: Client,
+        response: FastifyReply
+    ) {
+        this.rawInteraction = interaction;
+        this.data = interaction.data;
+        this.token = interaction.token;
+        this.response = response;
+        this.client = client;
+
+        this.id = interaction.id;
+        this.authorID = interaction.member?.user?.id || interaction.user!.id;
+        this.application_id = interaction.application_id;
+        this.type = interaction.type;
+        this.version = interaction.version;
+        this.locale = interaction.locale;
+
+        this.command = this.client.getCommand(interaction.data.name)!;
+
+        this.applicationId = interaction.application_id;
+        this.channelId = interaction.channel?.id;
+        this.guildId = interaction.guild_id;
+
+        this.member = interaction.member;
+        this.user = interaction.user || interaction.member!.user;
+
+        this.channel = interaction.channel;
+
+        this.entitlements = interaction.entitlements;
+    }
+
+    respond(choices: APIApplicationCommandOptionChoice[]) {
+        return this.response.send({
+            type: InteractionResponseType.ApplicationCommandAutocompleteResult,
+            data: {
+                choices,
+            },
+        });
     }
 }

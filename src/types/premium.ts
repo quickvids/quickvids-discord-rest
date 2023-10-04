@@ -4,6 +4,7 @@ import {
     APIMessageComponentInteraction,
     APIModalSubmitInteraction,
 } from "discord-api-types/v10";
+import { APIApplicationCommandAutocompleteInteraction } from "./discord";
 
 export type APIChatInputApplicationCommandInteractionWithEntitlements =
     APIChatInputApplicationCommandInteraction & {
@@ -19,6 +20,10 @@ export type APIMessageComponentInteractionWithEntitlements = APIMessageComponent
 };
 
 export type APIModalSubmitInteractionWithEntitlements = APIModalSubmitInteraction & {
+    entitlements?: APIApplicationEntitlement[];
+};
+
+export type APIApplicationCommandAutocompleteInteractionWithEntitlements = APIApplicationCommandAutocompleteInteraction & {
     entitlements?: APIApplicationEntitlement[];
 };
 

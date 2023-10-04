@@ -12,11 +12,12 @@ import Client from "./Client";
 
 import crypto from "node:crypto";
 import {
+    APIApplicationCommandAutocompleteInteractionWithEntitlements,
     APIChatInputApplicationCommandInteractionWithEntitlements,
     APIContextMenuInteractionWithEntitlements,
 } from "../types/premium";
 import Database from "./Database";
-import { ContextMenuContext, SlashCommandContext } from "./CommandContext";
+import { AutocompleteContext, ContextMenuContext, SlashCommandContext } from "./CommandContext";
 
 const rateLimitConfig: RateLimitOptions = {
     max: 5,
@@ -99,7 +100,10 @@ export default class Server {
                     res
                 );
                 await this.client.handleCommand(ctx);
-            } else if (interaction.data.type === ApplicationCommandType.Message) {
+            } else if (
+                interaction.data.type === ApplicationCommandType.Message ||
+                interaction.data.type === ApplicationCommandType.User
+            ) {
                 const ctx = new ContextMenuContext(
                     interaction as APIContextMenuInteractionWithEntitlements,
                     this.client,
@@ -107,6 +111,15 @@ export default class Server {
                 );
                 await this.client.handleCommand(ctx);
             }
+        }
+
+        if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+            const ctx = new AutocompleteContext(
+                interaction as APIApplicationCommandAutocompleteInteractionWithEntitlements,
+                this.client,
+                res
+            );
+            await this.client.handleAutocomplete(ctx);
         }
         // else if (
         //     interaction.type === InteractionType.MessageComponent &&
