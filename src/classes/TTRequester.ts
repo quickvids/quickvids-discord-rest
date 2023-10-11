@@ -1,5 +1,6 @@
 import { createShortUrl, getQueryParamValue } from "./Functions";
 import Logger from "./Logger";
+import { parse } from "lossless-json";
 
 export default class TTRequester {
     apiKey: string;
@@ -40,9 +41,9 @@ export default class TTRequester {
             throw new Error(`Request to ${url} failed with status code ${response.status}`);
         }
 
-        const data = (await response.json()) as object | null;
+        const text = await response.text();
 
-        return data;
+        return parse(text);
     }
 
     async fetchPostInfo(postId: string | number): Promise<any | Error> {
@@ -51,7 +52,7 @@ export default class TTRequester {
             data = await this.request("GET", `/detail/post/${postId}`);
             if (!data) return null;
 
-            if (data.status_code !== 0) {
+            if (data.status_code.value !== "0") {
                 const error_code = "DbrqXPgP4G";
                 return new Error(
                     `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
@@ -98,5 +99,71 @@ export default class TTRequester {
         }
 
         return data;
+    }
+
+    async fetchUserIds(uniqueId: string): Promise<{ uid: string; secUid: string } | null> {
+        this.console.log(`Fetching user ids | Unique ID: ${uniqueId}`);
+        let data: null | any = null;
+        try {
+            data = await this.request("POST", "/user/ids", { unique_id: uniqueId });
+        } catch (e) {
+            this.console.error(`Failed to fetch user ids: ${uniqueId} | ${e}`);
+            return null;
+        }
+
+        if (!data.uid) {
+            return null;
+        }
+        this.console.log(`Fetched user ids | Unique ID: ${uniqueId} | UID: ${data.uid}`);
+        return {
+            uid: String(data.uid),
+            secUid: data.sec_uid,
+        };
+    }
+
+    // async def fetch_user(self, user_id: str | int = None, sec_uid: str = None, unique_id: str = None, *, timeout: float | int = None) -> User:
+    // if user_id is None and sec_uid is None and unique_id is None:
+    //     raise ValueError("user_id or sec_uid must be provided")
+
+    // if unique_id is not None:
+    //     user_id, sec_uid = await self.fetch_users_ids(unique_id, timeout=timeout)
+
+    // id = user_id or sec_uid or unique_id
+    // self.logger.debug(f"Fetching user | ID: {id}")
+    // try:
+    //     data = await self.request("GET", f"/user/{id}", timeout=timeout)
+    // except Exception as e:
+    //     self.logger.error(f"Failed to fetch user: {user_id or sec_uid or unique_id}", exc_info=e)
+    //     return None
+
+    // return User.from_dict(data["user"])
+
+    async fetchUser(
+        userId: string | null,
+        secUid: string | null,
+        uniqueId: string | null
+    ): Promise<any | null> {
+        if (!userId && !secUid && !uniqueId) {
+            throw new Error("user_id or sec_uid must be provided");
+        }
+
+        if (uniqueId) {
+            const userIds = await this.fetchUserIds(uniqueId);
+            if (!userIds) return null;
+            userId = userIds.uid;
+            secUid = userIds.secUid;
+        }
+
+        const id = userId || secUid;
+        this.console.log(`Fetching user | ID: ${id}`);
+        let data: null | any = null;
+        try {
+            data = await this.request("GET", `/user/${id}`);
+        } catch (e) {
+            this.console.error(`Failed to fetch user: ${userId || secUid || uniqueId} | ${e}`);
+            return null;
+        }
+
+        return data.user;
     }
 }

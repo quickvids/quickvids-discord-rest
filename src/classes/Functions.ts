@@ -11,8 +11,6 @@ import {
 } from "discord-api-types/v10";
 
 import { RESTGetAPIApplicationEntitlementsResult } from "../types/premium";
-import type InteractionCommand from "./ApplicationCommand";
-import type OLDContext from "./Context";
 
 import { GuildConfig, Shortener } from "../database/schema";
 import { randomBytes } from "crypto";

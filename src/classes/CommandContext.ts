@@ -21,6 +21,7 @@ import {
     Snowflake,
     InteractionType,
     APIApplicationCommandOptionChoice,
+    APIBaseInteraction,
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
@@ -31,10 +32,22 @@ import {
     APIContextMenuInteractionWithEntitlements,
 } from "../types/premium";
 import type { OptionType } from "./OptionTypes";
-import type InteractionContext from "./Context";
 import type Client from "./Client";
-import InteractionCommand from "./ApplicationCommand";
+import { InteractionCommand } from "./ApplicationCommand";
 import { APIApplicationCommandAutocompleteInteraction, AutocompleteData } from "../types/discord";
+
+export default interface InteractionContext
+    extends APIBaseInteraction<InteractionType.ApplicationCommand, any> {
+    client: Client;
+    command: InteractionCommand;
+    authorID: Snowflake;
+    guildId?: Snowflake;
+    channelId: Snowflake;
+    member?: APIInteractionGuildMember;
+    user: APIUser;
+    appPermissions?: string;
+    entitlements?: APIApplicationEntitlement[];
+}
 
 export class SlashCommandContext implements InteractionContext {
     rawInteraction: APIApplicationCommandInteraction;
@@ -311,7 +324,7 @@ export class AutocompleteContext implements APIApplicationCommandAutocompleteInt
         this.entitlements = interaction.entitlements;
     }
 
-    respond(choices: APIApplicationCommandOptionChoice[]) {
+    reply({ choices }: { choices?: APIApplicationCommandOptionChoice[] }) {
         return this.response.send({
             type: InteractionResponseType.ApplicationCommandAutocompleteResult,
             data: {
