@@ -1,4 +1,8 @@
-import { APIInteractionDataOptionBase, ButtonStyle } from "discord-api-types/v10";
+import {
+    APIInteractionDataOptionBase,
+    ButtonStyle,
+    APIApplicationCommandInteractionDataStringOption,
+} from "discord-api-types/v10";
 import { AutocompleteContext, SlashCommandContext } from "../classes/CommandContext";
 import Extension, { persistent_component, slash_command } from "../classes/Extension";
 import crypto from "crypto";
@@ -23,7 +27,7 @@ const hashString = (str: string): string => {
 };
 
 const autocomplete_autocomplete = async (ctx: AutocompleteContext): Promise<void> => {
-    const input = ctx.data.options[0].value;
+    const input = ctx.data.options[0] as APIApplicationCommandInteractionDataStringOption;
     const choices: string[] = [];
 
     for (let i = 0; i < 3; i++) {
