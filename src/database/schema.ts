@@ -1,12 +1,11 @@
-import mongoose, { Document, Schema, SchemaTypes, Model } from "mongoose";
+import mongoose, { Document, Schema, SchemaTypes, Model, Types } from "mongoose";
 import mongooseLong from "mongoose-long";
 
 mongooseLong(mongoose);
-const Long = Schema.Types.Long;
 
 const shortenerSchema = new Schema(
     {
-        video_id: { type: Long, required: true, unique: true },
+        video_id: { type: String, required: true, unique: true },
         file_id: { type: String, required: false, default: "" },
         video_uri: { type: String, required: false, default: "" },
         slug: { type: String, required: true, unique: true },
@@ -34,16 +33,16 @@ export type BotStats = mongoose.InferSchemaType<typeof botStatsSchema>;
 export const BotStats = mongoose.model("BotStats", botStatsSchema);
 
 const webhookDataSchema = new Schema({
-    id: { type: Long, required: true },
+    id: { type: String, required: true },
     token: { type: String, required: true },
-    channel_id: { type: Long, required: true },
+    channel_id: { type: String, required: true },
 });
 
 // Define the SingleFollowee schema
 const singleFolloweeSchema = new Schema({
-    channel_id: { type: Long, required: true },
-    creator: { type: Long, required: true },
-    role_id: { type: Long, default: null },
+    channel_id: { type: String, required: true },
+    creator: { type: String, required: true },
+    role_id: { type: String, default: null },
     message: {
         type: String,
         default: "{{creator}} just posted a new video! {{role}}",
@@ -60,14 +59,14 @@ const singleFolloweeSchema = new Schema({
 
 const mentionMagicSchema = new Schema({
     enabled: { type: Boolean, default: false },
-    channel_id: { type: Long, default: null },
+    channel_id: { type: String, default: null },
 });
 
 // Define the WebhookData schema
 
 const guildConfigSchema = new Schema(
     {
-        guild_id: { type: Long, required: true, unique: true },
+        guild_id: { type: String, required: true, unique: true },
         following_cap: { type: Number, default: 3 },
         following_default_channel: { type: Number, default: null },
         following_default_role: { type: Number, default: null },
@@ -85,3 +84,56 @@ const guildConfigSchema = new Schema(
 
 export type GuildConfig = mongoose.InferSchemaType<typeof guildConfigSchema>;
 export const GuildConfig = mongoose.model<GuildConfig>("GuildConfig", guildConfigSchema);
+
+const guildsSchema = new Schema(
+    {
+        guild_id: { type: String, required: true, unique: true },
+        shard_id: { type: Number, required: false, default: null },
+        name: { type: String, required: false, default: null },
+        icon: { type: String, required: false, default: null },
+        splash: { type: String, required: false, default: null },
+        permissions: { type: Number, required: false, default: 0 },
+        approx_member_count: { type: Number, required: false, default: 0 },
+    },
+    { collection: "Guilds", versionKey: false }
+)
+
+export type Guilds = mongoose.InferSchemaType<typeof guildsSchema>;
+export const Guilds = mongoose.model<Guilds>("Guilds", guildsSchema);
+
+const magicMentionUsersSchema = new Schema(
+    {
+        discord_id: { type: String, required: true, unique: true },
+        tt_sec_uid: { type: String, required: true, unique: true },
+        tt_uid: { type: String, required: true, unique: true },
+        guilds_to_notify: { type: [String], default: [] },
+    },
+    { collection: "MagicMentionUsers", versionKey: false }
+);
+
+export type MagicMentionUsers = mongoose.InferSchemaType<typeof magicMentionUsersSchema>;
+export const MagicMentionUsers = mongoose.model<MagicMentionUsers>("MagicMentionUsers", magicMentionUsersSchema);
+
+const accountsSchema = new Schema(
+    {
+        user_id: { type: String, required: true, unique: true },
+        access_token: { type: String, required: false, default: null },
+        refresh_token: { type: String, required: false, default: null },
+        scopes: { type: [String], required: false, default: null },
+        premium: {
+            has_premium: { type: Boolean, required: false, default: false },
+            expires_at: { type: Date, required: false, default: null },
+            customer_id: { type: String, required: false, default: null },
+            subscription_id: { type: String, required: false, default: null },
+            payment_failed: { type: Boolean, required: false, default: false },
+            last_webhook: { type: Date, required: false, default: null },
+            stat_reset_date: { type: Date, required: false, default: null },
+            stat_gens_left: { type: Number, required: false, default: 0 },
+        },
+        favorites: { type: [String], required: false, default: null },
+    },
+    { collection: "Accounts", versionKey: false }
+);
+
+export type Accounts = mongoose.InferSchemaType<typeof accountsSchema>;
+export const Accounts = mongoose.model<Accounts>("Accounts", accountsSchema);

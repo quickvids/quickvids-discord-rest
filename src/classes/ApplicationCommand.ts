@@ -14,6 +14,7 @@ import Extension from "./Extension";
 import { AutocompleteCallback } from "../types/discord";
 
 export class InteractionCommand {
+    id?: Snowflake;
     extension?: Extension;
     name: string;
     scopes: Snowflake[];
@@ -27,7 +28,7 @@ export class InteractionCommand {
         name: string,
         defaultMemberPermissions: Permission[] | null,
         dmPermission: boolean = false,
-        nsfw: boolean,
+        nsfw?: boolean,
         scopes?: Snowflake[],
         extension?: Extension,
         callback?: (ctx: any) => Promise<void>
@@ -36,9 +37,13 @@ export class InteractionCommand {
         this.scopes = scopes || [];
         this.defaultMemberPermissions = defaultMemberPermissions || null;
         this.dmPermission = dmPermission;
-        this.nsfw = nsfw;
+        this.nsfw = nsfw || false;
         this.extension = extension;
         this.callback = callback;
+    }
+
+    mention(subcommand?: string) {
+        return `</${this.name}${subcommand ? ` ${subcommand}` : ""}:${this.id}>`;
     }
 }
 

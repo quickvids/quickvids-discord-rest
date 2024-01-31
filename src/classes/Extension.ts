@@ -4,29 +4,32 @@ import { ReadOnly } from "./OptionTypes";
 import { SlashCommandContext } from "./CommandContext";
 import { SlashCommand } from "./ApplicationCommand";
 import { AutocompleteCallback } from "../types/discord";
+import { ComponentCallback } from "./ComponentContext";
 
 export default class Extension {
     name: string;
     commands: Map<string, SlashCommand>;
+    components: Map<string, ComponentCallback>;
 
     constructor(name: string) {
         this.name = name;
 
         let commands = new Map<string, SlashCommand>();
+        let components = new Map<string, ComponentCallback>();
 
         const proto = Object.getPrototypeOf(this);
         for (const propertyName in proto) {
             if (proto.hasOwnProperty(propertyName)) {
-                commands = new Map([...commands, ...proto.commands]);
+                if (propertyName === "commands") {
+                    commands = new Map([...commands, ...proto.commands]);
+                } else if (propertyName === "components") {
+                    components = new Map([...components, ...proto.components]);
+                }
             }
         }
 
         this.commands = commands;
-
-        // for command in commands, add the extension to the command
-        for (const [name, command] of this.commands) {
-            command.extension = this;
-        }
+        this.components = components;
     }
 }
 
@@ -72,6 +75,26 @@ export function slash_command({
             console.log(ctx);
         };
         target.commands.set(name, command);
+
+        return descriptor;
+    };
+}
+
+// this will get called when a user interacts with a persistent component (button, select menu)
+export function persistent_component({
+    custom_id,
+    extension,
+}: {
+    custom_id: RegExp;
+    extension?: Extension;
+    callback?: (ctx: any) => Promise<void>;
+}): Function {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const component = new ComponentCallback(custom_id, extension, descriptor.value);
+        if (!target.components) {
+            target.components = new Map();
+        }
+        target.components.set(custom_id, component);
 
         return descriptor;
     };

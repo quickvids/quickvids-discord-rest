@@ -10,10 +10,13 @@ import {
     RESTPatchAPIInteractionFollowupJSONBody,
 } from "discord-api-types/v10";
 
-import { RESTGetAPIApplicationEntitlementsResult } from "../types/premium";
+import {
+    APIApplicationEntitlement,
+    RESTGetAPIApplicationEntitlementsResult,
+} from "../types/premium";
 
-import { GuildConfig, Shortener } from "../database/schema";
-import { randomBytes } from "crypto";
+import { Accounts, GuildConfig, Shortener } from "../database/schema";
+import { SmartDescription, TextExtra } from "../types/tiktok";
 
 export type Permission =
     | keyof typeof PermissionFlagsBits
@@ -245,7 +248,7 @@ export async function fetchApplicationEntitlements(
 //     InstagramReel = 6
 // This is an example from python
 
-enum MediaType {
+export enum MediaType {
     TikTokVideo = 1,
     TikTokImage = 2,
     TikTokMusic = 3,
@@ -254,7 +257,7 @@ enum MediaType {
     InstagramReel = 6,
 }
 
-enum LinkIdType {
+export enum LinkIdType {
     LONG = 0,
     SHORT = 1,
     USER = 2,
@@ -373,11 +376,15 @@ export async function checkForTikTokLink(
 }
 
 function generateSlug(): string {
-    const randomBytesBuffer: Buffer = randomBytes(6);
-    const base64String: string = randomBytesBuffer.toString("base64");
-    const urlSafeSlug: string = base64String.replace("+", "-").replace("/", "_").replace(/=+$/, "");
+    const allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const slugLength = 8;
 
-    return urlSafeSlug;
+    let slug = "";
+    for (let i = 0; i < slugLength; i++) {
+        slug += allowedChars[Math.floor(Math.random() * allowedChars.length)];
+    }
+
+    return slug;
 }
 
 /**
@@ -433,6 +440,11 @@ export function getQueryParamValue(url: string, paramName: string): string | nul
     return match ? decodeURIComponent(match[1]) : null;
 }
 
+/**
+ * Retrieves the guild configuration for the specified guild ID. If the configuration does not exist, it will be created.
+ * @param guildId The ID of the guild to retrieve the configuration for.
+ * @returns A Promise that resolves to the GuildConfig object.
+ */
 export async function getGuildConfig(guildId: string): Promise<GuildConfig> {
     const guild = await GuildConfig.findOne({ guild_id: guildId });
     if (guild) return guild;
@@ -442,4 +454,104 @@ export async function getGuildConfig(guildId: string): Promise<GuildConfig> {
     });
     await newGuild.save();
     return newGuild;
+}
+
+// [
+//     {
+//       application_id: "900353078128173097",
+//       consumed: false,
+//       deleted: false,
+//       ends_at: "2023-11-29T06:15:09.287681+00:00",
+//       gift_code_flags: 0,
+//       id: "1168070511918583818",
+//       promotion_id: null,
+//       sku_id: "1158862627401892000",
+//       starts_at: "2023-10-29T06:15:09.287681+00:00",
+//       subscription_id: "1168070501818703892",
+//       type: 8,
+//       user_id: "324352543612469258"
+//     }
+//   ]
+
+export async function getAccount(
+    userId: string,
+    create: boolean = false
+): Promise<Accounts | null> {
+    const account = await Accounts.findOne({ user_id: userId });
+    if (account) return account;
+
+    if (create) {
+        const newAccount = new Accounts({
+            user_id: userId,
+        });
+        await newAccount.save();
+        return newAccount;
+    }
+
+    return null;
+}
+
+export async function verifyPremium(
+    userId: string,
+    entitlements: APIApplicationEntitlement[]
+): Promise<boolean> {
+    // check entitlements first, then the database
+    const premiumEntitlements = entitlements.filter((entitlement) => entitlement.type === 8);
+    console.log(premiumEntitlements);
+
+    if (premiumEntitlements.length > 0) {
+        return true;
+    }
+
+    const user = await getAccount(userId, true);
+
+    if (!user) {
+        return false;
+    }
+
+    if (user.premium?.has_premium) {
+        return true;
+    }
+
+    return false;
+}
+
+export async function checkExistingQVShortUrl(videoId: string | number): Promise<string | null> {
+    if (typeof videoId === "number") {
+        videoId = videoId.toString(); // The DB is not using bigint, so we need to convert it to a string.
+    }
+    const existingEntry = await Shortener.findOne({ video_id: videoId });
+    if (existingEntry) {
+        const url = `${process.env.WEB_BASE_URL}/${existingEntry.slug}`;
+        return url;
+    }
+
+    return null;
+}
+
+/**
+ * Cleans the description of a TikTok post by removing the hashtags and trimming the whitespace.
+ * @param description The description to clean.
+ * @param text_extra The text_extra array from the TikTok post.
+ * @returns A SmartDescription object.
+ */
+export function cleanDescription(description: string, text_extra: TextExtra[]): SmartDescription {
+    let cleaned = description;
+    let hashtags: string[] = [];
+
+    text_extra.forEach((hashtag) => {
+        if (hashtag.type == 1) {
+            //type 1 stands for hashtags in this context.
+            const hashtagText = description.substring(hashtag.start, hashtag.end);
+            console.log(hashtagText);
+            cleaned = cleaned.replace(hashtagText, "").trim(); //replace the hashtags in description and trim the excessive whitespaces.
+            hashtags.push(hashtag.hashtag_name);
+        }
+    });
+
+    return {
+        cleaned,
+        raw: description,
+        hashtags,
+    };
 }

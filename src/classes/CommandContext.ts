@@ -2,7 +2,6 @@ import {
     APIApplicationCommandInteractionDataSubcommandGroupOption,
     APIInteractionDataResolved,
     APIApplicationCommandInteractionDataSubcommandOption,
-    APIChatInputApplicationCommandInteractionData,
     APIApplicationCommandInteractionDataOption,
     APIInteractionResponseCallbackData,
     APIApplicationCommandInteraction,
@@ -22,19 +21,18 @@ import {
     InteractionType,
     APIApplicationCommandOptionChoice,
     APIBaseInteraction,
+    APIChatInputApplicationCommandInteraction,
+    APIEntitlement,
+    APIMessageApplicationCommandInteraction,
+    APIApplicationCommandAutocompleteInteraction,
+    APIChatInputApplicationCommandInteractionData
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
-import {
-    APIApplicationCommandAutocompleteInteractionWithEntitlements,
-    APIApplicationEntitlement,
-    APIChatInputApplicationCommandInteractionWithEntitlements,
-    APIContextMenuInteractionWithEntitlements,
-} from "../types/premium";
 import type { OptionType } from "./OptionTypes";
 import type Client from "./Client";
 import { InteractionCommand } from "./ApplicationCommand";
-import { APIApplicationCommandAutocompleteInteraction, AutocompleteData } from "../types/discord";
+import { AutocompleteData } from "../types/discord";
 
 export default interface InteractionContext
     extends APIBaseInteraction<InteractionType.ApplicationCommand, any> {
@@ -46,7 +44,6 @@ export default interface InteractionContext
     member?: APIInteractionGuildMember;
     user: APIUser;
     appPermissions?: string;
-    entitlements?: APIApplicationEntitlement[];
 }
 
 export class SlashCommandContext implements InteractionContext {
@@ -70,12 +67,13 @@ export class SlashCommandContext implements InteractionContext {
     type: InteractionType.ApplicationCommand;
     version;
     locale;
-    entitlements?: APIApplicationEntitlement[];
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
+    entitlements: APIEntitlement[];
 
     constructor(
-        interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
+        // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
+        interaction: APIChatInputApplicationCommandInteraction,
         client: Client,
         response: FastifyReply
     ) {
@@ -164,6 +162,13 @@ export class SlashCommandContext implements InteractionContext {
         });
     }
 
+    friendlyError(message: string, error_code: string) {
+        return this.reply(
+            `${message}\nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            { ephemeral: true }
+        );
+    }
+
     replyModal(data: APIModalInteractionResponseCallbackData) {
         this.response.send({
             type: InteractionResponseType.Modal,
@@ -195,7 +200,7 @@ export class ContextMenuContext implements InteractionContext {
     guildId?: Snowflake;
     member?: APIInteractionGuildMember;
     user: APIUser;
-    entitlements?: APIApplicationEntitlement[];
+    entitlements: APIEntitlement[];
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
     authorID: Snowflake;
@@ -207,7 +212,7 @@ export class ContextMenuContext implements InteractionContext {
 
     constructor(
         // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
-        interaction: APIContextMenuInteractionWithEntitlements,
+        interaction: APIMessageApplicationCommandInteraction,
         client: Client,
         response: FastifyReply
     ) {
@@ -272,7 +277,7 @@ export class ContextMenuContext implements InteractionContext {
 
 export class AutocompleteContext implements APIApplicationCommandAutocompleteInteraction {
     rawInteraction: APIApplicationCommandAutocompleteInteraction;
-    data: AutocompleteData;
+    data; // I do not know how to type this, but it inherits from APIApplicationCommandAutocompleteInteraction
     token: string;
     response: FastifyReply;
     client: Client;
@@ -282,7 +287,7 @@ export class AutocompleteContext implements APIApplicationCommandAutocompleteInt
     guildId?: Snowflake;
     member?: APIInteractionGuildMember;
     user: APIUser;
-    entitlements?: APIApplicationEntitlement[];
+    entitlements: APIEntitlement[];
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
     authorID: Snowflake;
@@ -293,7 +298,7 @@ export class AutocompleteContext implements APIApplicationCommandAutocompleteInt
     locale;
 
     constructor(
-        interaction: APIApplicationCommandAutocompleteInteractionWithEntitlements,
+        interaction: APIApplicationCommandAutocompleteInteraction,
         client: Client,
         response: FastifyReply
     ) {

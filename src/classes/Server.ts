@@ -2,8 +2,14 @@ import Logger from "./Logger";
 import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fastifyRateLimit, { RateLimitOptions } from "@fastify/rate-limit";
 import {
+    APIApplicationCommandAutocompleteInteraction,
+    APIChatInputApplicationCommandInteraction,
     APIInteraction,
+    APIMessageApplicationCommandInteraction,
+    APIMessageComponentInteraction,
+    APIModalSubmitInteraction,
     ApplicationCommandType,
+    ComponentType,
     InteractionResponseType,
     InteractionType,
 } from "discord-api-types/v10";
@@ -11,13 +17,9 @@ import { verify } from "discord-verify/node";
 import Client from "./Client";
 
 import crypto from "node:crypto";
-import {
-    APIApplicationCommandAutocompleteInteractionWithEntitlements,
-    APIChatInputApplicationCommandInteractionWithEntitlements,
-    APIContextMenuInteractionWithEntitlements,
-} from "../types/premium";
 import Database from "./Database";
 import { AutocompleteContext, ContextMenuContext, SlashCommandContext } from "./CommandContext";
+import { ButtonContext, ModalContext } from "./ComponentContext";
 
 const rateLimitConfig: RateLimitOptions = {
     max: 5,
@@ -95,7 +97,7 @@ export default class Server {
         if (interaction.type === InteractionType.ApplicationCommand) {
             if (interaction.data.type === ApplicationCommandType.ChatInput) {
                 const ctx = new SlashCommandContext(
-                    interaction as APIChatInputApplicationCommandInteractionWithEntitlements,
+                    interaction as APIChatInputApplicationCommandInteraction,
                     this.client,
                     res
                 );
@@ -105,7 +107,7 @@ export default class Server {
                 interaction.data.type === ApplicationCommandType.User
             ) {
                 const ctx = new ContextMenuContext(
-                    interaction as APIContextMenuInteractionWithEntitlements,
+                    interaction as APIMessageApplicationCommandInteraction,
                     this.client,
                     res
                 );
@@ -115,30 +117,30 @@ export default class Server {
 
         if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
             const ctx = new AutocompleteContext(
-                interaction as APIApplicationCommandAutocompleteInteractionWithEntitlements,
+                interaction as APIApplicationCommandAutocompleteInteraction,
                 this.client,
                 res
             );
             await this.client.handleAutocomplete(ctx);
+        } else if (
+            interaction.type === InteractionType.MessageComponent &&
+            interaction.data.component_type === ComponentType.Button
+        ) {
+            // If the interaction is a button
+            const ctx = new ButtonContext(
+                interaction as APIMessageComponentInteraction,
+                this.client,
+                res
+            );
+            await this.client.handleButton(ctx);
+        } else if (interaction.type === InteractionType.ModalSubmit) {
+            // If the interaction is a button
+            const ctx = new ModalContext(
+                interaction as APIModalSubmitInteraction,
+                this.client,
+                res
+            );
+            await this.client.handleModal(ctx);
         }
-        // else if (
-        //     interaction.type === InteractionType.MessageComponent &&
-        //     interaction.data.component_type === ComponentType.Button
-        // ) {
-        //     // If the interaction is a button
-        //     const ctx = new ButtonContext(
-        //         interaction as APIMessageComponentInteractionWithEntitlements,
-        //         this.client,
-        //         res
-        //     );
-        //     await this.client.handleButton(ctx);
-        // } else if (interaction.type === InteractionType.ModalSubmit) {
-        //     const ctx = new ModalContext(
-        //         interaction as APIModalSubmitInteraction,
-        //         this.client,
-        //         res
-        //     );
-        //     await this.client.paranoiaHandler.handleModal(ctx);
-        // }
     }
 }

@@ -1,7 +1,8 @@
-import { APIInteractionDataOptionBase } from "discord-api-types/v10";
+import { APIInteractionDataOptionBase, ButtonStyle } from "discord-api-types/v10";
 import { AutocompleteContext, SlashCommandContext } from "../classes/CommandContext";
-import Extension, { slash_command } from "../classes/Extension";
+import Extension, { persistent_component, slash_command } from "../classes/Extension";
 import crypto from "crypto";
+import { ButtonContext, ModalContext } from "../classes/ComponentContext";
 
 // Function to generate a random string of a specified length
 const generateRandomString = (length: number = 10): string => {
@@ -82,6 +83,52 @@ export default class Ping extends Extension {
                     color: ctx.client.COLORS.BLURPLE,
                 },
             ],
+            components: [
+                {
+                    type: 1,
+                    components: [
+                        {
+                            type: 2,
+                            style: ButtonStyle.Primary,
+                            label: "send some love",
+                            custom_id: "send_some_love",
+                            emoji: {
+                                name: "💖",
+                            },
+                        },
+                    ],
+                },
+            ],
         });
+    }
+
+    @persistent_component({ custom_id: /send_some_love/ })
+    async send_some_love(ctx: ButtonContext): Promise<void> {
+        return ctx.replyModal({
+            title: "Hi there!",
+            custom_id: "thx_modal",
+            components: [
+                {
+                    type: 1,
+                    components: [
+                        {
+                            type: 4,
+                            custom_id: "dev_thx_msg",
+                            label: "What would you like to send to the devs?",
+                            style: 1,
+                            min_length: 1,
+                            max_length: 4000,
+                            placeholder: "This means a lot btw <3",
+                            required: true,
+                        },
+                    ],
+                },
+            ],
+        });
+    }
+
+    @persistent_component({ custom_id: /thx_modal/ })
+    async thx_modal(ctx: ModalContext): Promise<void> {
+        return ctx.reply("test", { ephemeral: true });
     }
 }

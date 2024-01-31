@@ -3,7 +3,7 @@ import Database from "./classes/Database";
 import Server from "./classes/Server";
 import TTRequester from "./classes/TTRequester";
 
-const {
+export const {
     PORT,
     CLIENT_PUBLIC_KEY,
     APPLICATION_ID,

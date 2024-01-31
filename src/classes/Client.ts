@@ -1,7 +1,10 @@
 import {
     APIApplicationCommand,
     APIApplicationCommandOption,
+    APIButtonComponentBase,
+    APIButtonComponentWithURL,
     ApplicationCommandType,
+    ButtonStyle,
     PermissionFlagsBits,
     RESTPostAPIWebhookWithTokenJSONBody,
 } from "discord-api-types/v10";
@@ -10,10 +13,14 @@ import Logger from "./Logger";
 import { readdirSync } from "fs";
 import Database from "./Database";
 import TTRequester from "./TTRequester";
-import InteractionContext from "./CommandContext";
+import InteractionContext, { ContextMenuContext, SlashCommandContext } from "./CommandContext";
 import { InteractionCommand, SlashCommand } from "./ApplicationCommand";
 import { AutocompleteContext } from "./CommandContext";
 import Extension from "./Extension";
+import { Guilds } from "../database/schema";
+import { APIAuditLogChange } from "discord-api-types/v9";
+import { WEB_BASE_URL } from "..";
+import { ButtonContext, ComponentCallback, ModalContext } from "./ComponentContext";
 
 type BotVote = {
     points: number;
@@ -27,10 +34,12 @@ export default class Client {
     discordAPIUrl: string;
     functions: typeof functions;
     commands: InteractionCommand[];
+    componentCallbacks: ComponentCallback[];
     database: Database;
     ttrequester: TTRequester;
     console: Logger;
     topggToken: string | null;
+    rawCommands: APIApplicationCommand[] = [];
 
     static COLORS = {
         WHITE: 0xffffff,
@@ -68,6 +77,7 @@ export default class Client {
         this.discordAPIUrl = `https://discord.com/api/v10`;
         this.functions = functions;
         this.commands = [];
+        this.componentCallbacks = [];
         this.console = new Logger("Client");
         this.database = database;
         this.topggToken = topggToken || null;
@@ -103,7 +113,27 @@ export default class Client {
         }
     }
 
-    async handleCommand(ctx: InteractionContext) {
+    async checkUserTopGGVote(userId: string): Promise<boolean | null> {
+        if (!this.topggToken) return null;
+        const response = await fetch(`https://top.gg/api/bots/${this.id}/check?userId=${userId}`, {
+            method: "GET",
+            headers: {
+                Authorization: this.topggToken,
+            },
+        });
+
+        if (response.ok) {
+            const data = (await response.json()) as { voted: 0 | 1 };
+            if (data.voted === 1) {
+                return true;
+            }
+            return false;
+        } else {
+            return null;
+        }
+    }
+
+    async handleCommand(ctx: ContextMenuContext | SlashCommandContext) {
         const command = this.commands.find((c) => c.name === ctx.command.name);
         if (!command)
             return this.console.error(
@@ -119,6 +149,11 @@ export default class Client {
             await command.callback(ctx);
         } catch (err) {
             this.console.error(err);
+            const error_code = "hDFPRERTpb";
+            await ctx.reply(
+                `Uh oh. An unepected error occured. Please join our [Support Server](<https://discord.gg/${error_code}>) and report this error.\n\nError Code: \`${error_code}\``,
+                { ephemeral: true }
+            );
         }
     }
 
@@ -132,6 +167,33 @@ export default class Client {
 
         try {
             await command.autocomplete(ctx);
+        } catch (err) {
+            this.console.error(err);
+        }
+    }
+
+    async handleButton(ctx: ButtonContext) {
+        const callback = this.getComponentCallback(ctx.custom_id) as ComponentCallback;
+        if (!callback || !callback.callback)
+            return this.console.error(
+                `Button ${ctx.custom_id} was run with no corresponding callback function.`
+            );
+
+        try {
+            await callback.callback(ctx);
+        } catch (err) {
+            this.console.error(err);
+        }
+    }
+    async handleModal(ctx: ModalContext) {
+        const callback = this.getComponentCallback(ctx.custom_id) as ComponentCallback;
+        if (!callback || !callback.callback)
+            return this.console.error(
+                `Modal ${ctx.custom_id} was run with no corresponding callback function.`
+            );
+
+        try {
+            await callback.callback(ctx);
         } catch (err) {
             this.console.error(err);
         }
@@ -155,6 +217,8 @@ export default class Client {
             ).default() as Extension;
             this.console.log(`Loaded command ${extension.name}`);
             this.commands.push(...extension.commands.values());
+            this.console.log(`Loaded ${extension.components} components`);
+            this.componentCallbacks.push(...extension.components.values());
 
             for (const command of extension.commands.values()) {
                 if (!command.scopes || command.scopes.length === 0) {
@@ -188,7 +252,14 @@ export default class Client {
                 );
             else await this.updateCommands(guildOnly[guildId], guildId);
         }
+
+        // propogate the id field to the commands
+        for (const command of this.commands) {
+            command.id = this.rawCommands.find((c) => c.name === command.name)?.id;
+        }
     }
+
+    loadComponentCallbacks() {}
 
     async updateCommands(commands: InteractionCommand[], guildId?: string) {
         if (!(await this.compareCommands(commands, guildId))) return;
@@ -196,7 +267,7 @@ export default class Client {
 
         const commandsData = commands.map(this.convertCommandToDiscordFormat).filter(Boolean);
 
-        await fetch(
+        const newCommands = await fetch(
             `${this.discordAPIUrl}/applications/${this.id}${
                 guildId ? `/guilds/${guildId}` : ""
             }/commands`,
@@ -209,6 +280,18 @@ export default class Client {
                 body: JSON.stringify(commandsData),
             }
         );
+
+        if (!newCommands.ok) {
+            this.console.error(
+                `Failed to update ${
+                    commandsData.length
+                } slash commands: ${await newCommands.text()}`
+            );
+            return;
+        } else {
+            const newCommandsData = (await newCommands.json()) as APIApplicationCommand[];
+            this.rawCommands = newCommandsData;
+        }
 
         this.console.success(`Updated ${commandsData.length} slash commands`);
     }
@@ -236,7 +319,8 @@ export default class Client {
             // this.console.log(JSON.stringify(commands));
             // this.console.log(JSON.stringify(await response.json()));
 
-            const commandList: APIApplicationCommand[] = await response.json();
+            const commandList = (await response.json()) as APIApplicationCommand[];
+            this.rawCommands = commandList;
             this.console.log(JSON.stringify(commandList));
 
             // Compare the fetched commands with the provided commands
@@ -391,5 +475,122 @@ export default class Client {
 
     getCommand(name: string) {
         return this.commands.find((c) => c.name === name);
+    }
+
+    getComponentCallback(custom_id: string) {
+        return this.componentCallbacks.find((c) => c.custom_id.test(custom_id));
+    }
+
+    /**
+     * Get's a basic guild data from the database.
+     * @param guildId - The ID of the guild to get the data for.
+     */
+    async getGuild(guildId: string): Promise<Guilds | null> {
+        const guild = await Guilds.findOne({ guild_id: guildId });
+        return guild;
+    }
+
+    /**
+     * Displays a premium ad and prompts the user to upgrade to QuickVids Premium.
+     * If the user has already paid for premium, returns true.
+     * If the user has voted on top.gg and `topgg_can_count` is true, returns true.
+     * Otherwise, displays a premium ad with a link to upgrade to QuickVids Premium.
+     * If `topgg_can_count` is true, also includes a button to vote on top.gg to unlock the command for 12 hours.
+     * @param ctx The context of the command.
+     * @param topgg_can_count Whether or not the user can unlock the command by voting on top.gg.
+     * @returns A Promise that resolves to true if the user has paid for premium or voted on top.gg (if `topgg_can_count` is true), and false otherwise.
+     */
+    async command_premium_wall(
+        ctx: SlashCommandContext | ContextMenuContext,
+        topgg_can_count: boolean = false
+    ): Promise<boolean> {
+        const userPaidPremium = await functions.verifyPremium(ctx.authorID, ctx.entitlements || []);
+        if (userPaidPremium) return true;
+
+        const topggPremium = await this.checkUserTopGGVote(ctx.authorID);
+
+        if (topggPremium) {
+            if (topgg_can_count) return true;
+        } else if (topggPremium === null) {
+            this.console.warn(`Failed to check if ${ctx.authorID} voted on top.gg`);
+            if (topgg_can_count) return true;
+        }
+
+        const premiumAd = `Unlock the full power of QuickVids with QuickVids Premium! This exclusive feature is reserved for our Premium users. You can easily upgrade to QuickVids Premium through our [website](${WEB_BASE_URL}/premium) or directly within Discord via [App Subscriptions](https://discord.com/application-directory/${this.id}/premium).\n\nBy subscribing to QuickVids Premium, you not only gain access to this exclusive command but also support our mission to keep the bot running smoothly. And the best part? **It's just $3 a month!**`;
+
+        const embed = {
+            title: "QuickVids Premium",
+            description: premiumAd,
+            color: Client.COLORS.YELLOW,
+            footer: { text: "Prefered purchase method is through the website." },
+        };
+
+        if (topgg_can_count) {
+            embed.description += `\n\nYou can also vote for QuickVids on [top.gg](https://top.gg/bot/${this.id}/vote) to unlock this command for 12 hours.`;
+        }
+
+        const buttons: APIButtonComponentWithURL[] = [];
+
+        if (topgg_can_count) {
+            buttons.push({
+                type: 2,
+                label: "Vote on top.gg",
+                style: 5,
+                url: `https://top.gg/bot/${this.id}/vote`,
+                emoji: {
+                    name: "topgg",
+                    id: "918280202398875758",
+                },
+            });
+        }
+
+        buttons.push({
+            type: 2,
+            label: "Check out Premium",
+            style: 5,
+            url: `${WEB_BASE_URL}/premium`,
+        });
+
+        await ctx.reply(
+            {
+                embeds: [embed],
+                components: [
+                    {
+                        type: 1,
+                        components: buttons,
+                    },
+                ],
+            },
+            {
+                ephemeral: true,
+            }
+        );
+
+        return false;
+    }
+
+    /**
+     * Sends a follow-up message to a Discord interaction. Meant to send ads and other messages that are not directly related to the command.
+     * @param {string} application_id - The ID of the Discord application.
+     * @param {string} token - The token of the interaction.
+     * @param {any} data - The data to be sent as the follow-up message.
+     * @returns {Promise<void>} - A promise that resolves when the follow-up message is sent successfully.
+     */
+    async postFollowup({
+        application_id,
+        token,
+        data,
+    }: {
+        application_id: string;
+        token: string;
+        data: any;
+    }) {
+        await fetch(`${this.discordAPIUrl}/webhooks/${application_id}/${token}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
     }
 }
