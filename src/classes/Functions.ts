@@ -8,12 +8,9 @@ import {
     RESTGetAPIGuildResult,
     PermissionFlagsBits,
     RESTPatchAPIInteractionFollowupJSONBody,
+    APIEntitlement,
+    RESTGetAPIEntitlementsResult,
 } from "discord-api-types/v10";
-
-import {
-    APIApplicationEntitlement,
-    RESTGetAPIApplicationEntitlementsResult,
-} from "../types/premium";
 
 import { Accounts, GuildConfig, Shortener } from "../database/schema";
 import { SmartDescription, TextExtra } from "../types/tiktok";
@@ -219,7 +216,7 @@ export async function fetchGuildChannels(
 export async function fetchApplicationEntitlements(
     guildId?: string,
     excludeEnded = true
-): Promise<RESTGetAPIApplicationEntitlementsResult | null> {
+): Promise<RESTGetAPIEntitlementsResult | null> {
     const response = await fetch(
         `${process.env.DISCORD_API_URL || "https://discord.com"}/api/applications/${
             process.env.APPLICATION_ID
@@ -494,7 +491,7 @@ export async function getAccount(
 
 export async function verifyPremium(
     userId: string,
-    entitlements: APIApplicationEntitlement[]
+    entitlements: APIEntitlement[]
 ): Promise<boolean> {
     // check entitlements first, then the database
     const premiumEntitlements = entitlements.filter((entitlement) => entitlement.type === 8);
