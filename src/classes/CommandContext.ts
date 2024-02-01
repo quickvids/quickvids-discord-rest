@@ -70,6 +70,7 @@ export class SlashCommandContext implements InteractionContext {
     appPermissions?: string;
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
     entitlements: APIEntitlement[];
+    defered: boolean;
 
     constructor(
         // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
@@ -112,6 +113,7 @@ export class SlashCommandContext implements InteractionContext {
         this.channel = interaction.channel;
 
         this.entitlements = interaction.entitlements;
+        this.defered = false;
     }
 
     getOption<O extends APIApplicationCommandOption>(name: string): OptionType<O> | undefined {
@@ -151,15 +153,45 @@ export class SlashCommandContext implements InteractionContext {
         return;
     }
 
-    reply(data: string | APIInteractionResponseCallbackData, options?: { ephemeral?: boolean }) {
-        if (typeof data === "string") data = { content: data };
+    async reply(
+        data: string | APIInteractionResponseCallbackData,
+        options?: { ephemeral?: boolean }
+    ) {
+        if (this.defered) {
+            // If deferred, create a new follow-up message
+            if (typeof data === "string") data = { content: data };
+            if (options?.ephemeral) {
+                data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
+            }
+            return this.client.postFollowup({
+                application_id: this.applicationId,
+                token: this.token,
+                data,
+            });
+        } else {
+            // If not deferred, reply as usual
+            if (typeof data === "string") data = { content: data };
+            if (options?.ephemeral) {
+                data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
+            }
+            return this.response.send({
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data,
+            });
+        }
+    }
+
+    defer(options?: { ephemeral?: boolean }) {
+        let data: APIInteractionResponseCallbackData = {};
         if (options?.ephemeral) {
             data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
         }
         this.response.send({
-            type: InteractionResponseType.ChannelMessageWithSource,
+            type: InteractionResponseType.DeferredChannelMessageWithSource,
             data,
         });
+
+        this.defered = true;
     }
 
     replyModal(data: APIModalInteractionResponseCallbackData) {

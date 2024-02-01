@@ -13,10 +13,10 @@ import {
     checkForTikTokLink,
     cleanDescription,
     getGuildConfig,
+    hasPermission,
 } from "../classes/Functions";
 import { GuildConfig as GuildConfigModel } from "../database/schema";
 import { ButtonContext } from "../classes/ComponentContext";
-import { sleepSync } from "bun";
 
 async function validateAndGenerate({
     ctx,
@@ -56,7 +56,7 @@ async function validateAndGenerate({
 
     const existingLink = await checkExistingQVShortUrl(linkData.id);
 
-    if (existingLink !== null) {
+    if (existingLink !== null && guildConfig.markdown_links === false) {
         qv_short_url = existingLink;
     } else {
         const tiktokData = await ctx.client.ttrequester.fetchPostInfo(linkData.id);
@@ -164,6 +164,21 @@ export default class TikTok extends Extension {
             content: link.value,
             spoiler: spoiler === undefined ? false : spoiler.value, // If the spoiler option is not provided, set it to false.
             ephemeral: hidden === undefined ? false : hidden.value,
+        });
+    }
+
+    // delete
+    @persistent_component({ custom_id: /delete\d+/ })
+    async delete(ctx: ButtonContext): Promise<void> {
+        const id = ctx.custom_id.replace("delete", "");
+
+        if (ctx.authorID !== id || !hasPermission("ManageMessages", ctx.data.member?.permissions)) {
+            return ctx.reply("You cannot delete someone else's message.", { ephemeral: true });
+        }
+
+        await ctx.client.deleteMessage({
+            channel_id: ctx.data.message.channel_id,
+            message_id: ctx.data.message.id,
         });
     }
 

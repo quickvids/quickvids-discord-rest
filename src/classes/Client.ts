@@ -583,4 +583,14 @@ export default class Client {
             body: JSON.stringify(data),
         });
     }
+
+    async deleteMessage({ channel_id, message_id }: { channel_id: string; message_id: string }) {
+        await fetch(`${this.discordAPIUrl}/channels/${channel_id}/messages/${message_id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bot ${this.token}`,
+            },
+        });
+    }
 }

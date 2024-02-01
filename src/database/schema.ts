@@ -91,6 +91,7 @@ const guildConfigSchema = new Schema(
         origin_delete: { type: Boolean, default: false },
         origin_suppress: { type: Boolean, default: true },
         show_buttons: { type: Boolean, default: true },
+        markdown_links: { type: Boolean, default: false },
         listen_channels: { type: [Number], default: [] },
         mention_magic: mentionMagicSchema,
         webhooks: { type: [webhookDataSchema], default: [] },
