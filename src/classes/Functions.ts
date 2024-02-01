@@ -495,7 +495,6 @@ export async function verifyPremium(
 ): Promise<boolean> {
     // check entitlements first, then the database
     const premiumEntitlements = entitlements.filter((entitlement) => entitlement.type === 8);
-    console.log(premiumEntitlements);
 
     if (premiumEntitlements.length > 0) {
         return true;
@@ -551,4 +550,65 @@ export function cleanDescription(description: string, text_extra: TextExtra[]): 
         raw: description,
         hashtags,
     };
+}
+
+export async function insertUserFavorite(
+    userId: string,
+    videoId: string
+): Promise<boolean | Error> {
+    await getAccount(userId, true); // NOTE: Saftey check to ensure the user exists in the database.
+    const user = await Accounts.findOne({ user_id: userId });
+    if (!user) {
+        return new Error("Failed to find user in database.");
+    }
+    if (user.favorites === undefined) {
+        user.favorites = [videoId];
+        await user.save();
+        return true;
+    } else if (!user.favorites.includes(videoId)) {
+        user.favorites.push(videoId);
+        await user.save();
+        return true;
+    } else {
+        return new Error("This video is already in your favorites.");
+    }
+}
+
+export async function removeUserFavorite(
+    userId: string,
+    videoId: string
+): Promise<boolean | Error> {
+    await getAccount(userId, true); // NOTE: Saftey check to ensure the user exists in the database.
+    const user = await Accounts.findOne({ user_id: userId });
+    if (!user) {
+        return new Error("Failed to find user in database.");
+    }
+    if (user.favorites === undefined) {
+        return new Error("You have no favorites to remove.");
+    } else if (user.favorites.includes(videoId)) {
+        user.favorites = user.favorites.filter((id) => id !== videoId);
+        await user.save();
+        return true;
+    } else {
+        return new Error("This video is not in your favorites.");
+    }
+}
+
+export async function checkUserFavorite(userId: string, videoId: string): Promise<boolean> {
+    await getAccount(userId, true); // NOTE: Saftey check to ensure the user exists in the database.
+    const user = await Accounts.findOne({ user_id: userId });
+    if (!user) {
+        return false;
+    }
+    if (user.favorites === undefined || user.favorites === null) {
+        user.favorites = [];
+        await user.save();
+        return false;
+    } else if (user.favorites.length === 0) {
+        return false;
+    } else {
+        return user.favorites.includes(videoId);
+    }
+
+    return false;
 }

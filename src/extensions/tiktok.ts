@@ -1,6 +1,9 @@
 import {
+    APIActionRowComponent,
+    APIButtonComponentWithCustomId,
     APIEmbed,
     APIInteractionDataOptionBase,
+    APIMessageActionRowComponent,
     ButtonStyle,
     ChannelType,
     ComponentType,
@@ -11,9 +14,12 @@ import {
     MediaType,
     checkExistingQVShortUrl,
     checkForTikTokLink,
+    checkUserFavorite,
     cleanDescription,
     getGuildConfig,
     hasPermission,
+    insertUserFavorite,
+    removeUserFavorite,
 } from "../classes/Functions";
 import { GuildConfig as GuildConfigModel } from "../database/schema";
 import { ButtonContext } from "../classes/ComponentContext";
@@ -167,6 +173,64 @@ export default class TikTok extends Extension {
         });
     }
 
+    // fav
+    @persistent_component({ custom_id: /^fav\d+$/ })
+    async fav(ctx: ButtonContext): Promise<void> {
+        await ctx.defer({ ephemeral: true, edit_origin: true });
+        const id = ctx.custom_id.replace("fav", "");
+
+        const paidUser = await ctx.client.command_premium_wall(ctx);
+        if (paidUser === false) {
+            return;
+        }
+
+        const inserted = await insertUserFavorite(ctx.authorID, id);
+
+        let action_rows = ctx.data.message
+            .components as APIActionRowComponent<APIButtonComponentWithCustomId>[];
+
+        for (let row of action_rows) {
+            for (let component of row.components) {
+                if (component.custom_id === ctx.custom_id) {
+                    component.label = "Remove From Library";
+                    component.custom_id = `unfav${id}`;
+                    break;
+                }
+            }
+        }
+
+        ctx.editOrigin({ components: action_rows });
+    }
+
+    // unfav
+    @persistent_component({ custom_id: /^unfav\d+$/ })
+    async unfav(ctx: ButtonContext): Promise<void> {
+        await ctx.defer({ ephemeral: true, edit_origin: true });
+        const id = ctx.custom_id.replace("unfav", "");
+
+        const paidUser = await ctx.client.command_premium_wall(ctx);
+        if (paidUser === false) {
+            return;
+        }
+
+        const removed = await removeUserFavorite(ctx.authorID, id);
+
+        let action_rows = ctx.data.message
+            .components as APIActionRowComponent<APIButtonComponentWithCustomId>[];
+
+        for (let row of action_rows) {
+            for (let component of row.components) {
+                if (component.custom_id === ctx.custom_id) {
+                    component.label = "Add to Library";
+                    component.custom_id = `fav${id}`;
+                    break;
+                }
+            }
+        }
+
+        ctx.editOrigin({ components: action_rows });
+    }
+
     // delete
     @persistent_component({ custom_id: /delete\d+/ })
     async delete(ctx: ButtonContext): Promise<void> {
@@ -269,6 +333,11 @@ export default class TikTok extends Extension {
             });
         }
 
+        const usrFavorited = await checkUserFavorite(ctx.authorID, id);
+        console.log(usrFavorited);
+
+        const whichFavBtn = usrFavorited ? "unfav" : "fav";
+
         ctx.reply(
             {
                 embeds: [embed],
@@ -309,7 +378,7 @@ export default class TikTok extends Extension {
                                 emoji: {
                                     name: "⭐",
                                 },
-                                custom_id: `fav${id}`,
+                                custom_id: `${whichFavBtn}${id}`,
                             },
                         ],
                     },

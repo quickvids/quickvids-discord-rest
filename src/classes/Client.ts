@@ -491,22 +491,24 @@ export default class Client {
      * @returns A Promise that resolves to true if the user has paid for premium or voted on top.gg (if `topgg_can_count` is true), and false otherwise.
      */
     async command_premium_wall(
-        ctx: SlashCommandContext | ContextMenuContext,
+        ctx: SlashCommandContext | ContextMenuContext | ButtonContext,
         topgg_can_count: boolean = false
     ): Promise<boolean> {
         const userPaidPremium = await functions.verifyPremium(ctx.authorID, ctx.entitlements || []);
         if (userPaidPremium) return true;
 
-        const topggPremium = await this.checkUserTopGGVote(ctx.authorID);
+        if (topgg_can_count) {
+            const topggPremium = await this.checkUserTopGGVote(ctx.authorID);
 
-        if (topggPremium) {
-            if (topgg_can_count) return true;
-        } else if (topggPremium === null) {
-            this.console.warn(`Failed to check if ${ctx.authorID} voted on top.gg`);
-            if (topgg_can_count) return true;
+            if (topggPremium) {
+                if (topgg_can_count) return true;
+            } else if (topggPremium === null) {
+                this.console.warn(`Failed to check if ${ctx.authorID} voted on top.gg`);
+                if (topgg_can_count) return true;
+            }
         }
 
-        const premiumAd = `Unlock the full power of QuickVids with QuickVids Premium! This exclusive feature is reserved for our Premium users. You can easily upgrade to QuickVids Premium through our [website](${WEB_BASE_URL}/premium) or directly within Discord via [App Subscriptions](https://discord.com/application-directory/${this.id}/premium).\n\nBy subscribing to QuickVids Premium, you not only gain access to this exclusive command but also support our mission to keep the bot running smoothly. And the best part? **It's just $3 a month!**`;
+        const premiumAd = `Unlock the full power of QuickVids with QuickVids Personal Premium! This exclusive feature is reserved for our Premium users. You can easily upgrade to QuickVids Premium through our [website](${WEB_BASE_URL}/premium) or directly within Discord via [App Subscriptions](https://discord.com/application-directory/${this.id}/premium).\n\nBy subscribing to QuickVids Premium, you not only gain access to this exclusive command but also support our mission to keep the bot running smoothly. And the best part? **It's just $3 a month!**`;
 
         const embed = {
             title: "QuickVids Premium",
@@ -582,6 +584,35 @@ export default class Client {
             },
             body: JSON.stringify(data),
         });
+    }
+
+    /**
+     * Edits the original message of a webhook.
+     * @param {Object} options - The options for editing the origin.
+     * @param {string} options.application_id - The application ID.
+     * @param {string} options.token - The webhook token.
+     * @param {any} options.data - The data to be sent in the request body.
+     * @returns {Promise<void>} - A promise that resolves when the request is complete.
+     */
+    async editOrigin({
+        application_id,
+        token,
+        data,
+    }: {
+        application_id: string;
+        token: string;
+        data: any;
+    }) {
+        const thing = await fetch(
+            `${this.discordAPIUrl}/webhooks/${application_id}/${token}/messages/@original`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            }
+        );
     }
 
     async deleteMessage({ channel_id, message_id }: { channel_id: string; message_id: string }) {

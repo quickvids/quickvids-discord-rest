@@ -121,13 +121,30 @@ export class ButtonContext implements ComponentContext {
             });
         }
     }
-    defer(options?: { ephemeral?: boolean }) {
+
+    //     Edit Original Interaction Response
+    // PATCH/webhooks/{application.id}/{interaction.token}/messages/@original
+    // Edits the initial Interaction response. Functions the same as Edit Webhook Message.
+
+    async editOrigin(data: APIInteractionResponseCallbackData) {
+        return this.client.editOrigin({
+            application_id: this.application_id,
+            token: this.token,
+            data,
+        });
+    }
+
+    defer(options?: { ephemeral?: boolean; edit_origin?: boolean }) {
         let data: APIInteractionResponseCallbackData = {};
         if (options?.ephemeral) {
             data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
         }
+        let type = InteractionResponseType.DeferredChannelMessageWithSource;
+        if (options?.edit_origin) {
+            type = InteractionResponseType.DeferredMessageUpdate;
+        }
         this.response.send({
-            type: InteractionResponseType.DeferredChannelMessageWithSource,
+            type: type,
             data,
         });
 
