@@ -1,20 +1,19 @@
 import { APIApplicationCommandOption, Snowflake } from "discord-api-types/v10";
 import { Permission } from "./Functions";
-import { ReadOnly } from "./OptionTypes";
 import { SlashCommandContext } from "./CommandContext";
-import { SlashCommand } from "./ApplicationCommand";
+import { ContextMenuCommand, SlashCommand } from "./ApplicationCommand";
 import { AutocompleteCallback } from "../types/discord";
 import { ComponentCallback } from "./ComponentContext";
 
 export default class Extension {
     name: string;
-    commands: Map<string, SlashCommand>;
+    commands: Map<string, SlashCommand | ContextMenuCommand>;
     components: Map<string, ComponentCallback>;
 
     constructor(name: string) {
         this.name = name;
 
-        let commands = new Map<string, SlashCommand>();
+        let commands = new Map<string, SlashCommand | ContextMenuCommand>();
         let components = new Map<string, ComponentCallback>();
 
         const proto = Object.getPrototypeOf(this);
@@ -74,6 +73,55 @@ export function slash_command({
             // Add your logic here...
             console.log(ctx);
         };
+        target.commands.set(name, command);
+
+        return descriptor;
+    };
+}
+
+// name: string,
+// defaultMemberPermissions: Permission[] | null,
+// dmPermission: boolean,
+// nsfw: boolean,
+// scopes?: Snowflake[],
+// extension?: Extension,
+// callback?: (ctx: any) => Promise<void>
+
+// type can be 2 for USER, 3 for MESSAGE
+
+export function context_menu({
+    name,
+    defaultMemberPermissions = null,
+    dmPermission = false,
+    nsfw = false,
+    description = "No description set",
+    scopes = [],
+    extension,
+}: {
+    name: string;
+    defaultMemberPermissions?: Permission[] | null;
+    dmPermission?: boolean;
+    nsfw?: boolean;
+    description?: string;
+    scopes?: Snowflake[];
+    extension?: Extension;
+}): Function {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const command = new ContextMenuCommand(
+            name,
+            defaultMemberPermissions,
+            dmPermission,
+            nsfw,
+            description,
+            scopes,
+            extension,
+            descriptor.value
+        );
+
+        if (!target.commands) {
+            target.commands = new Map();
+        }
+
         target.commands.set(name, command);
 
         return descriptor;

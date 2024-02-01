@@ -25,7 +25,7 @@ import {
     APIEntitlement,
     APIMessageApplicationCommandInteraction,
     APIApplicationCommandAutocompleteInteraction,
-    APIChatInputApplicationCommandInteractionData
+    APIChatInputApplicationCommandInteractionData,
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
@@ -162,18 +162,18 @@ export class SlashCommandContext implements InteractionContext {
         });
     }
 
-    friendlyError(message: string, error_code: string) {
-        return this.reply(
-            `${message}\nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
-            { ephemeral: true }
-        );
-    }
-
     replyModal(data: APIModalInteractionResponseCallbackData) {
         this.response.send({
             type: InteractionResponseType.Modal,
             data,
         });
+    }
+
+    friendlyError(message: string, error_code: string) {
+        return this.reply(
+            `${message}\nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            { ephemeral: true }
+        );
     }
 
     editResponse(data: string | RESTPatchAPIInteractionFollowupJSONBody, messageId = "@original") {
@@ -262,6 +262,13 @@ export class ContextMenuContext implements InteractionContext {
             type: InteractionResponseType.Modal,
             data,
         });
+    }
+
+    friendlyError(message: string, error_code: string) {
+        return this.reply(
+            `${message}\nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            { ephemeral: true }
+        );
     }
 
     editResponse(data: string | RESTPatchAPIInteractionFollowupJSONBody, messageId = "@original") {

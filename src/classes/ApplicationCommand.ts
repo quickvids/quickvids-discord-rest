@@ -20,6 +20,7 @@ export class InteractionCommand {
     scopes: Snowflake[];
     defaultMemberPermissions: Permission[] | null;
     dmPermission: boolean;
+    description: string = "No description set";
     nsfw: boolean;
     callback?: (ctx: any) => Promise<void>;
     type: ApplicationCommandType = ApplicationCommandType.ChatInput;
@@ -29,6 +30,7 @@ export class InteractionCommand {
         defaultMemberPermissions: Permission[] | null,
         dmPermission: boolean = false,
         nsfw?: boolean,
+        description?: string,
         scopes?: Snowflake[],
         extension?: Extension,
         callback?: (ctx: any) => Promise<void>
@@ -38,6 +40,7 @@ export class InteractionCommand {
         this.defaultMemberPermissions = defaultMemberPermissions || null;
         this.dmPermission = dmPermission;
         this.nsfw = nsfw || false;
+        this.description = description || this.description;
         this.extension = extension;
         this.callback = callback;
     }
@@ -69,7 +72,16 @@ export class SlashCommand extends InteractionCommand {
         callback?: (ctx: SlashCommandContext) => Promise<void>,
         autocompleteCallbacks?: AutocompleteCallback[] | null
     ) {
-        super(name, defaultMemberPermissions, dmPermission, nsfw, scopes, extension, callback);
+        super(
+            name,
+            defaultMemberPermissions,
+            dmPermission,
+            nsfw,
+            description,
+            scopes,
+            extension,
+            callback
+        );
         this.description = description;
         this.options = options || null;
         this.autocompleteCallbacks = autocompleteCallbacks || [];
@@ -145,5 +157,31 @@ export class SlashCommand extends InteractionCommand {
         }
 
         await callback.callback(ctx, focusedOption);
+    }
+}
+
+// NOTE: This is hard typed to the message type since it's our only use case for now
+export class ContextMenuCommand extends InteractionCommand {
+    type: ApplicationCommandType = ApplicationCommandType.Message;
+    constructor(
+        name: string,
+        defaultMemberPermissions: Permission[] | null,
+        dmPermission: boolean,
+        nsfw: boolean,
+        description: string,
+        scopes?: Snowflake[],
+        extension?: Extension,
+        callback?: (ctx: any) => Promise<void>
+    ) {
+        super(
+            name,
+            defaultMemberPermissions,
+            dmPermission,
+            nsfw,
+            description,
+            scopes,
+            extension,
+            callback
+        );
     }
 }

@@ -13,12 +13,11 @@ import Logger from "./Logger";
 import { readdirSync } from "fs";
 import Database from "./Database";
 import TTRequester from "./TTRequester";
-import InteractionContext, { ContextMenuContext, SlashCommandContext } from "./CommandContext";
-import { InteractionCommand, SlashCommand } from "./ApplicationCommand";
+import { ContextMenuContext, SlashCommandContext } from "./CommandContext";
+import { ContextMenuCommand, InteractionCommand, SlashCommand } from "./ApplicationCommand";
 import { AutocompleteContext } from "./CommandContext";
 import Extension from "./Extension";
 import { Guilds } from "../database/schema";
-import { APIAuditLogChange } from "discord-api-types/v9";
 import { WEB_BASE_URL } from "..";
 import { ButtonContext, ComponentCallback, ModalContext } from "./ComponentContext";
 
@@ -394,26 +393,17 @@ export default class Client {
             }
 
             return toReturn;
-        } else if (
-            command.type === ApplicationCommandType.Message ||
-            command.type === ApplicationCommandType.User
-        ) {
-            // let _command = command as ContextMenu;
-            // return {
-            //     type: _command.type,
-            //     name: _command.name,
-            //     dm_permission: _command.dmPermission,
-            //     nsfw: _command.nsfw ?? false,
-            //     default_member_permissions: _command.defaultMemberPermissions.length
-            //         ? _command.defaultMemberPermissions
-            //               .map((perm) =>
-            //                   typeof perm === "bigint" ? perm : PermissionFlagsBits[perm]
-            //               )
-            //               .reduce((a, c) => a | c, 0n)
-            //               .toString()
-            //         : null,
-            // };
+        } else if (command.type === ApplicationCommandType.User) {
+            return null;
+        } else if (command.type === ApplicationCommandType.Message) {
+            let _command = command as ContextMenuCommand;
+
+            toReturn.dm_permission = _command.dmPermission;
+            toReturn.nsfw = _command.nsfw ?? false;
+
+            return toReturn;
         }
+
         return null; // Handle other cases if needed
     }
 

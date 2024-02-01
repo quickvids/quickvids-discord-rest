@@ -5,8 +5,8 @@ import {
     ChannelType,
     ComponentType,
 } from "discord-api-types/v10";
-import { SlashCommandContext } from "../classes/CommandContext";
-import Extension, { persistent_component, slash_command } from "../classes/Extension";
+import { ContextMenuContext, SlashCommandContext } from "../classes/CommandContext";
+import Extension, { context_menu, persistent_component, slash_command } from "../classes/Extension";
 import {
     MediaType,
     checkExistingQVShortUrl,
@@ -24,7 +24,7 @@ async function validateAndGenerate({
     spoiler,
     ephemeral,
 }: {
-    ctx: SlashCommandContext;
+    ctx: SlashCommandContext | ContextMenuContext;
     content: string;
     spoiler: boolean;
     ephemeral?: boolean;
@@ -44,8 +44,7 @@ async function validateAndGenerate({
     }
 
     if (linkData.type === MediaType.TikTokUser) {
-        // TODO: Add support for TikTok user links.
-        return ctx.reply("At this time, we do not support TikTok user links", { ephemeral: true });
+        return ctx.friendlyError("At this time, we do not support TikTok user links. Suggest a use case in our support server!", "b7ZHXYyeEB");
     } else if (linkData.type === MediaType.UNKNOWN) {
         return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
     }
@@ -112,6 +111,20 @@ async function validateAndGenerate({
 
 export default class TikTok extends Extension {
     name = "tiktok";
+
+    @context_menu({
+        name: "tiktok_context",
+        dmPermission: true,
+    })
+    async tiktokContextMenu(ctx: ContextMenuContext): Promise<void> {
+        const target_message = ctx.resolved?.messages?.[ctx.rawData.target_id];
+
+        await validateAndGenerate({
+            ctx,
+            content: target_message?.content ?? "",
+            spoiler: false,
+        });
+    }
 
     @slash_command({
         name: "tiktok",
