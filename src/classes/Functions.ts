@@ -336,11 +336,12 @@ export async function fetchFullUrl(link: LinkData): Promise<LinkData> {
             return link;
         } else if (newLink.idType == LinkIdType.LONG) {
             return newLink;
+        } else {
+            return newLink;
         }
     } else {
         return link;
     }
-    return link;
 }
 
 export async function checkForTikTokLink(
