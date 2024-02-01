@@ -64,10 +64,27 @@ const mentionMagicSchema = new Schema({
 
 // Define the WebhookData schema
 
+const fourteenDays = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date;
+};
+
+const trialMessages = {
+    messaged_owner: {
+        success: { type: Boolean, default: false },
+        error: { type: String, default: "" },
+    },
+    messaged_guild: {
+        success: { type: Boolean, default: false },
+        error: { type: String, default: "" },
+    },
+};
+
 const guildConfigSchema = new Schema(
     {
         guild_id: { type: String, required: true, unique: true },
-        following_cap: { type: Number, default: 3 },
+        following_cap: { type: Number, default: 3 }, // NOTE: 3 until the trial is over
         following_default_channel: { type: Number, default: null },
         following_default_role: { type: Number, default: null },
         auto_embed: { type: Boolean, default: true },
@@ -78,6 +95,16 @@ const guildConfigSchema = new Schema(
         mention_magic: mentionMagicSchema,
         webhooks: { type: [webhookDataSchema], default: [] },
         following_creators: { type: [singleFolloweeSchema], default: [] },
+        trial: {
+            active: { type: Boolean, default: false },
+            start: { type: Date, default: Date.now },
+            end: { type: Date, default: fourteenDays },
+            messages: {
+                start: trialMessages,
+                mid: trialMessages,
+                end: trialMessages,
+            },
+        },
     },
     { collection: "GuildConfig", versionKey: false }
 );
@@ -96,7 +123,7 @@ const guildsSchema = new Schema(
         approx_member_count: { type: Number, required: false, default: 0 },
     },
     { collection: "Guilds", versionKey: false }
-)
+);
 
 export type Guilds = mongoose.InferSchemaType<typeof guildsSchema>;
 export const Guilds = mongoose.model<Guilds>("Guilds", guildsSchema);
@@ -112,7 +139,10 @@ const magicMentionUsersSchema = new Schema(
 );
 
 export type MagicMentionUsers = mongoose.InferSchemaType<typeof magicMentionUsersSchema>;
-export const MagicMentionUsers = mongoose.model<MagicMentionUsers>("MagicMentionUsers", magicMentionUsersSchema);
+export const MagicMentionUsers = mongoose.model<MagicMentionUsers>(
+    "MagicMentionUsers",
+    magicMentionUsersSchema
+);
 
 const accountsSchema = new Schema(
     {
