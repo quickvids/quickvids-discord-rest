@@ -63,6 +63,7 @@ export class ButtonContext implements ComponentContext {
     token: string;
     application_id: string;
     locale;
+    defered: boolean;
     type: InteractionType.MessageComponent;
     version;
 
@@ -91,18 +92,35 @@ export class ButtonContext implements ComponentContext {
         this.type = interaction.type;
         this.version = interaction.version;
         this.locale = interaction.locale;
+        this.defered = false;
     }
-    reply(data: string | APIInteractionResponseCallbackData, options?: { ephemeral?: boolean }) {
-        if (typeof data === "string") data = { content: data };
-        if (options?.ephemeral) {
-            data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
+    async reply(
+        data: string | APIInteractionResponseCallbackData,
+        options?: { ephemeral?: boolean }
+    ) {
+        if (this.defered) {
+            // If deferred, create a new follow-up message
+            if (typeof data === "string") data = { content: data };
+            if (options?.ephemeral) {
+                data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
+            }
+            return this.client.postFollowup({
+                application_id: this.application_id,
+                token: this.token,
+                data,
+            });
+        } else {
+            // If not deferred, reply as usual
+            if (typeof data === "string") data = { content: data };
+            if (options?.ephemeral) {
+                data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
+            }
+            return this.response.send({
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data,
+            });
         }
-        let resp = this.response.send({
-            type: InteractionResponseType.ChannelMessageWithSource,
-            data,
-        });
     }
-
     defer(options?: { ephemeral?: boolean }) {
         let data: APIInteractionResponseCallbackData = {};
         if (options?.ephemeral) {
@@ -112,6 +130,8 @@ export class ButtonContext implements ComponentContext {
             type: InteractionResponseType.DeferredChannelMessageWithSource,
             data,
         });
+
+        this.defered = true;
     }
 
     friendlyError(message: string, error_code: string) {
@@ -119,21 +139,6 @@ export class ButtonContext implements ComponentContext {
             `${message}\nIf you believe this is an error, join the support server for more help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
             { ephemeral: true }
         );
-    }
-
-    replyFollowup(
-        data: string | APIInteractionResponseCallbackData,
-        options?: { ephemeral?: boolean }
-    ) {
-        if (typeof data === "string") data = { content: data };
-        if (options?.ephemeral) {
-            data.flags = (data.flags || 0) | MessageFlags.Ephemeral;
-        }
-        this.client.postFollowup({
-            application_id: this.application_id,
-            token: this.token,
-            data,
-        });
     }
 
     replyModal(data: APIModalInteractionResponseCallbackData) {
@@ -166,11 +171,7 @@ export class ModalContext implements ComponentContext {
 
     callback?: (ctx: any) => Promise<void>;
 
-    constructor(
-        interaction: APIModalSubmitInteraction,
-        client: Client,
-        response: FastifyReply
-    ) {
+    constructor(interaction: APIModalSubmitInteraction, client: Client, response: FastifyReply) {
         this.data = interaction;
         this.client = client;
         this.response = response;

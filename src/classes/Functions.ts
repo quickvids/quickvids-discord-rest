@@ -541,7 +541,6 @@ export function cleanDescription(description: string, text_extra: TextExtra[]): 
         if (hashtag.type == 1) {
             //type 1 stands for hashtags in this context.
             const hashtagText = description.substring(hashtag.start, hashtag.end);
-            console.log(hashtagText);
             cleaned = cleaned.replace(hashtagText, "").trim(); //replace the hashtags in description and trim the excessive whitespaces.
             hashtags.push(hashtag.hashtag_name);
         }

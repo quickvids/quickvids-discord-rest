@@ -44,7 +44,10 @@ async function validateAndGenerate({
     }
 
     if (linkData.type === MediaType.TikTokUser) {
-        return ctx.friendlyError("At this time, we do not support TikTok user links. Suggest a use case in our support server!", "b7ZHXYyeEB");
+        return ctx.friendlyError(
+            "At this time, we do not support TikTok user links. Suggest a use case in our support server!",
+            "b7ZHXYyeEB"
+        );
     } else if (linkData.type === MediaType.UNKNOWN) {
         return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
     }
@@ -113,7 +116,7 @@ export default class TikTok extends Extension {
     name = "tiktok";
 
     @context_menu({
-        name: "tiktok_context",
+        name: "Convert 📸",
         dmPermission: true,
     })
     async tiktokContextMenu(ctx: ContextMenuContext): Promise<void> {
@@ -166,7 +169,6 @@ export default class TikTok extends Extension {
 
     @persistent_component({ custom_id: /v_id\d+/ })
     async info(ctx: ButtonContext): Promise<void> {
-        console.log("info-start");
         ctx.defer({ ephemeral: true });
         const id = ctx.custom_id.replace("v_id", "");
 
@@ -174,7 +176,7 @@ export default class TikTok extends Extension {
         const tiktokData = await ctx.client.ttrequester.fetchPostInfo(id);
 
         if (tiktokData === null) {
-            return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
+            return ctx.friendlyError("We were unable to fetch the TikTok video.", "sWngEsstrV");
         } else if (tiktokData instanceof Error) {
             return ctx.reply(tiktokData.message, {
                 ephemeral: true,
@@ -252,7 +254,7 @@ export default class TikTok extends Extension {
             });
         }
 
-        ctx.replyFollowup(
+        ctx.reply(
             {
                 embeds: [embed],
                 components: [
@@ -273,12 +275,107 @@ export default class TikTok extends Extension {
                             },
                         ],
                     },
+                    {
+                        type: 1,
+                        components: [
+                            {
+                                type: 2,
+                                style: ButtonStyle.Secondary,
+                                label: "Audio",
+                                emoji: {
+                                    name: "🎵",
+                                },
+                                custom_id: `m_id${tiktokData.aweme_detail.music.mid}`,
+                            },
+                            {
+                                type: 2,
+                                style: ButtonStyle.Secondary,
+                                label: "Add to Library",
+                                emoji: {
+                                    name: "⭐",
+                                },
+                                custom_id: `fav${id}`,
+                            },
+                        ],
+                    },
                 ],
             },
             { ephemeral: true }
         );
 
-        sleepSync(1000); // NOTE: This prevents discord from combining the two messages into one.
-        ctx.replyFollowup("hello", { ephemeral: true });
+        // sleepSync(1000); // NOTE: This prevents discord from combining the two messages into one.
+        // ctx.replyFollowup("hello", { ephemeral: true });
+    }
+
+    // NOTE: Music button
+    @persistent_component({ custom_id: /m_id\d+/ })
+    async music(ctx: ButtonContext): Promise<void> {
+        ctx.defer({ ephemeral: true });
+        const id = ctx.custom_id.replace("m_id", "");
+
+        const musicInfo = await ctx.client.ttrequester.fetchMusicInfo(id);
+
+        if (musicInfo === null) {
+            return ctx.friendlyError("We were unable to fetch the TikTok music.", "wCdPsqWMsj");
+        } else if (musicInfo instanceof Error) {
+            return ctx.reply(musicInfo.message, {
+                ephemeral: true,
+            });
+        }
+
+        const videoCount: number = musicInfo.music_info.user_count;
+        const authorID: string = musicInfo.music_info.owner_id;
+        const authorName: string = musicInfo.music_info.author;
+        const authorAvatar: string = musicInfo.music_info.cover_thumb.url_list[0];
+        const musicTitle: string = musicInfo.music_info.title;
+        const musicCover: string = musicInfo.music_info.cover_large.url_list[0];
+        const downloadUrl: string = musicInfo.music_info.play_url.url_list[0];
+        const ttLink: string = `https://www.tiktok.com/music/quickvids-${id}`;
+
+        let embed: APIEmbed = {
+            description: `### [${musicTitle}](${ttLink})`,
+            color: 0x5865f2,
+            author: {
+                name: authorName,
+                icon_url: authorAvatar,
+                url: `https://tiktok.com/@${authorID}`,
+            },
+            thumbnail: {
+                url: musicCover,
+            },
+            fields: [
+                {
+                    name: "Video Count 📱",
+                    value: (+videoCount).toLocaleString(),
+                    inline: false,
+                },
+            ],
+        };
+
+        ctx.reply(
+            {
+                embeds: [embed],
+                components: [
+                    {
+                        type: 1,
+                        components: [
+                            {
+                                type: 2,
+                                style: ButtonStyle.Link,
+                                label: "Download",
+                                url: downloadUrl,
+                            },
+                            {
+                                type: 2,
+                                style: ButtonStyle.Link,
+                                label: "View on TikTok",
+                                url: ttLink,
+                            },
+                        ],
+                    },
+                ],
+            },
+            { ephemeral: true }
+        );
     }
 }

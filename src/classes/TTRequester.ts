@@ -101,6 +101,35 @@ export default class TTRequester {
         return data;
     }
 
+    async fetchMusicInfo(musicId: string | number): Promise<any | null> {
+        this.console.log(`Fetching music info | Music ID: ${musicId}`);
+        let data: null | any = null;
+        try {
+            data = await this.request("GET", `/detail/music/${musicId}`);
+
+            if (!data) return null;
+
+            if (data.status_code.value !== "0") {
+                const error_code = "pReXfwMbne";
+                return new Error(
+                    `Sorry, there was an error fetching that tiktok audio. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+                );
+            }
+
+            if (data.music_info === undefined) {
+                const error_code = "U2vsXKHawj";
+                return new Error(
+                    `This TikTok audio is not available.\n\nThis could be because the TikTok audio was deleted, the owner of the TikTok audio has a private account, or the TikTok audio is under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+                );
+            }
+        } catch (e) {
+            this.console.error(`Failed to fetch music info: ${musicId} | ${e}`);
+            return null;
+        }
+
+        return data;
+    }
+
     async fetchUserIds(uniqueId: string): Promise<{ uid: string; secUid: string } | null> {
         this.console.log(`Fetching user ids | Unique ID: ${uniqueId}`);
         let data: null | any = null;
