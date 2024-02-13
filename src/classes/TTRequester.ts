@@ -86,9 +86,19 @@ export default class TTRequester {
             // data.aweme_detail.video.play_addr_h264.url_list
             // get the file_id from the url_list (get the url with "tiktokv.com" in it")
             // const videoUrl = data.aweme_detail.video.play_addr_h264.url_list[2];
-            const videoUrl = data.aweme_detail.video.play_addr_h264.url_list.find((url: string) =>
-                url.includes("tiktokv.com")
-            );
+
+            // check if play_addr_h264 is undefined
+            let videoUrl: string;
+            if (data.aweme_detail.video.play_addr_h264 === undefined) {
+                videoUrl = data.aweme_detail.video.play_addr.url_list.find((url: string) =>
+                    url.includes("tiktokv.com")
+                );
+            } else {
+                videoUrl = data.aweme_detail.video.play_addr_h264.url_list.find((url: string) =>
+                    url.includes("tiktokv.com")
+                );
+            }
+
             const fileId = getQueryParamValue(videoUrl, "file_id");
             const videUri = getQueryParamValue(videoUrl, "video_id");
 
