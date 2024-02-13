@@ -6,7 +6,7 @@ import {
     ApplicationCommandType,
     ButtonStyle,
     ChannelType,
-    ComponentType
+    ComponentType,
 } from "discord-api-types/v10";
 import { ContextMenuContext, SlashCommandContext } from "../classes/CommandContext";
 import { ButtonContext } from "../classes/ComponentContext";
@@ -285,10 +285,14 @@ export default class TikTok extends Extension {
             });
         }
 
-        const description = cleanDescription(
+        let description = cleanDescription(
             tiktokData.aweme_detail.desc,
             tiktokData.aweme_detail.text_extra
         );
+
+        if (description.cleaned.length > 256) {
+            description.cleaned = description.cleaned.slice(0, 253) + "...";
+        }
 
         let embed: APIEmbed = {
             title: description.cleaned,
@@ -357,11 +361,10 @@ export default class TikTok extends Extension {
         }
 
         const usrFavorited = await checkUserFavorite(ctx.authorID, id);
-        console.log(usrFavorited);
 
         const whichFavBtn = usrFavorited ? "unfav" : "fav";
 
-        ctx.reply(
+        return ctx.reply(
             {
                 embeds: [embed],
                 components: [
