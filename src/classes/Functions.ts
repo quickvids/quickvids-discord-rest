@@ -84,17 +84,14 @@ export async function sendMessage(
     channelId: string,
     token: string
 ): Promise<RESTPostAPIChannelMessageResult | null> {
-    const response = await fetch(
-        `https://discord.com/api/v10/channels/${channelId}/messages`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bot ${token}`,
-            },
-            body: JSON.stringify(data),
-        }
-    );
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bot ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
 
     if (response.ok) {
         return (await response.json()) as RESTPostAPIChannelMessageResult;
@@ -255,7 +252,7 @@ export async function fetchApplicationEntitlements(
     );
 
     if (response.ok) {
-        return await response.json() as RESTGetAPIEntitlementsResult;
+        return (await response.json()) as RESTGetAPIEntitlementsResult;
     } else {
         return null;
     }
@@ -501,8 +498,6 @@ export async function getAccount(
     userId: string,
     create: boolean = false
 ): Promise<HydratedDocument<Accounts> | null> {
-    // ) {
-
     const account = await Accounts.findOne({ user_id: userId });
     if (account) return account;
 
@@ -648,23 +643,21 @@ export async function insertEmbedLog({
     userId,
     method,
 }: {
-    guildId: string;
+    guildId: string | null;
     channelId: string;
     videoId: string;
-    userId: string;
+    userId: string | null;
     method: number;
 }): Promise<void> {
-    const user = await getAccount(userId, true);
-    if (!user) {
-        return;
-    }
-
-    // NOTE: A user's logs are a list of ObjectIds, so we need to use a separate list for embed logs.
-    if (!user.logs) {
-        user.logs = [];
-    }
-    if (user.log_usage_data !== undefined && user.log_usage_data === false) {
-        userId = "none";
+    let user;
+    if (userId) {
+        user = await getAccount(userId, true);
+        if (user) {
+            // NOTE: A user's logs are a list of ObjectIds, so we need to use a separate list for embed logs.
+            if (user.log_usage_data !== undefined && user.log_usage_data === false) {
+                userId = null;
+            }
+        }
     }
 
     const log = new DiscordEmbedLogs({
@@ -677,7 +670,11 @@ export async function insertEmbedLog({
 
     await log.save();
 
-    user.logs.push(log._id);
-
-    await user.save();
+    if (userId && user) {
+        if (!user.logs) {
+            user.logs = [];
+        }
+        user.logs.push(log._id);
+        await user.save();
+    }
 }

@@ -182,9 +182,9 @@ export const Accounts = mongoose.model<Accounts>("Accounts", accountsSchema);
 const discordEmbedLogsSchema = new Schema(
     {
         method: { type: Number, required: true, default: EmbedMethod.Gateway },
-        user_id: { type: String, required: true, default: "none" },
-        guild_id: { type: String, required: true, default: "none" },
-        channel_id: { type: String, required: true, default: "none" },
+        user_id: { type: String, required: false, default: "none" },
+        guild_id: { type: String, required: false, default: "none" },
+        channel_id: { type: String, required: true, default: "unknown" },
         tiktok_id: { type: String, required: true }, // TikTok Video ID
         ts: { type: Date, required: true, default: Date.now },
     },
