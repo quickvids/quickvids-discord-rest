@@ -1,38 +1,37 @@
 import {
-    APIApplicationCommandInteractionDataSubcommandGroupOption,
-    APIInteractionDataResolved,
-    APIApplicationCommandInteractionDataSubcommandOption,
-    APIApplicationCommandInteractionDataOption,
-    APIInteractionResponseCallbackData,
+    APIApplicationCommandAutocompleteInteraction,
     APIApplicationCommandInteraction,
-    ApplicationCommandOptionType,
+    APIApplicationCommandInteractionDataOption,
+    APIApplicationCommandInteractionDataSubcommandGroupOption,
+    APIApplicationCommandInteractionDataSubcommandOption,
     APIApplicationCommandOption,
-    APIInteractionGuildMember,
-    InteractionResponseType,
-    APIUser,
-    APIModalInteractionResponseCallbackData,
-    MessageFlags,
-    RESTPatchAPIInteractionFollowupJSONBody,
-    APIChannel,
-    APIMessageApplicationCommandInteractionData,
-    APIContextMenuInteraction,
-    APIMessageApplicationCommandInteractionDataResolved,
-    Snowflake,
-    InteractionType,
     APIApplicationCommandOptionChoice,
     APIBaseInteraction,
+    APIChannel,
     APIChatInputApplicationCommandInteraction,
-    APIEntitlement,
-    APIMessageApplicationCommandInteraction,
-    APIApplicationCommandAutocompleteInteraction,
     APIChatInputApplicationCommandInteractionData,
+    APIContextMenuInteraction,
+    APIEntitlement,
+    APIInteractionDataResolved,
+    APIInteractionGuildMember,
+    APIInteractionResponseCallbackData,
+    APIMessageApplicationCommandInteraction,
+    APIMessageApplicationCommandInteractionData,
+    APIMessageApplicationCommandInteractionDataResolved,
+    APIModalInteractionResponseCallbackData,
+    APIUser,
+    ApplicationCommandOptionType,
+    InteractionResponseType,
+    InteractionType,
+    MessageFlags,
+    RESTPatchAPIInteractionFollowupJSONBody,
+    Snowflake,
 } from "discord-api-types/v10";
 import type { FastifyReply } from "fastify";
 
-import type { OptionType } from "./OptionTypes";
-import type Client from "./Client";
 import { InteractionCommand } from "./ApplicationCommand";
-import { AutocompleteData } from "../types/discord";
+import type Client from "./Client";
+import type { OptionType } from "./OptionTypes";
 
 export default interface InteractionContext
     extends APIBaseInteraction<InteractionType.ApplicationCommand, any> {
@@ -104,7 +103,7 @@ export class SlashCommandContext implements InteractionContext {
         this.appPermissions = interaction.app_permissions;
 
         this.applicationId = interaction.application_id;
-        this.channelId = interaction.channel_id;
+        this.channelId = interaction.channel.id;
         this.guildId = interaction.guild_id;
 
         this.member = interaction.member;

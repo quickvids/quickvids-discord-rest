@@ -1,10 +1,10 @@
 import type {
-    APIApplicationCommandInteractionDataSubcommandOption,
     APIApplicationCommandInteractionDataBasicOption,
+    APIApplicationCommandInteractionDataSubcommandOption,
+    APIApplicationCommandOption,
     APIApplicationCommandSubcommandGroupOption,
     APIApplicationCommandSubcommandOption,
     ApplicationCommandOptionType,
-    APIApplicationCommandOption,
     Snowflake,
 } from "discord-api-types/v10";
 

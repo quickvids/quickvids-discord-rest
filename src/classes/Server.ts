@@ -1,5 +1,3 @@
-import Logger from "./Logger";
-import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fastifyRateLimit, { RateLimitOptions } from "@fastify/rate-limit";
 import {
     APIApplicationCommandAutocompleteInteraction,
@@ -14,12 +12,20 @@ import {
     InteractionType,
 } from "discord-api-types/v10";
 import { verify } from "discord-verify/node";
+import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import Client from "./Client";
+import Logger from "./Logger";
 
 import crypto from "node:crypto";
-import Database from "./Database";
-import { AutocompleteContext, ContextMenuContext, SlashCommandContext } from "./CommandContext";
+import { GATEWAY_SECRET } from "..";
+import { gatewayValidateAndGenerate } from "../extensions/_gateway_helper";
+import InteractionContext, {
+    AutocompleteContext,
+    ContextMenuContext,
+    SlashCommandContext,
+} from "./CommandContext";
 import { ButtonContext, ModalContext } from "./ComponentContext";
+import Database from "./Database";
 
 const rateLimitConfig: RateLimitOptions = {
     max: 5,
@@ -57,8 +63,34 @@ export default class Server {
 
     registerRoutes() {
         this.router.post("/interactions", this.handleRequest.bind(this));
-
+        this.router.post("/gateway", this.handleGatewayRequest.bind(this));
         this.router.get("/", (_, res) => res.redirect("https://quickvids.win"));
+    }
+
+    async handleGatewayRequest(
+        req: FastifyRequest<{
+            Body: APIInteraction;
+            Headers: {
+                Authorization: string;
+            };
+        }>,
+        res: FastifyReply
+    ) {
+        // GATEWAY_SECRET
+        const auth_token = req.headers.authorization;
+        if (auth_token !== GATEWAY_SECRET) return res.code(401).send("Invalid request");
+
+        const ctx = {
+            client: this.client,
+            ...req.body,
+        } as InteractionContext;
+
+        try {
+            const resp = await gatewayValidateAndGenerate({ ctx });
+            res.send(resp);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     async handleRequest(

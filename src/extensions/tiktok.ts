@@ -3,12 +3,13 @@ import {
     APIButtonComponentWithCustomId,
     APIEmbed,
     APIInteractionDataOptionBase,
-    APIMessageActionRowComponent,
+    ApplicationCommandType,
     ButtonStyle,
     ChannelType,
-    ComponentType,
+    ComponentType
 } from "discord-api-types/v10";
 import { ContextMenuContext, SlashCommandContext } from "../classes/CommandContext";
+import { ButtonContext } from "../classes/ComponentContext";
 import Extension, { context_menu, persistent_component, slash_command } from "../classes/Extension";
 import {
     MediaType,
@@ -18,11 +19,12 @@ import {
     cleanDescription,
     getGuildConfig,
     hasPermission,
+    insertEmbedLog,
     insertUserFavorite,
     removeUserFavorite,
 } from "../classes/Functions";
 import { GuildConfig as GuildConfigModel } from "../database/schema";
-import { ButtonContext } from "../classes/ComponentContext";
+import { EmbedMethod } from "../types/discord";
 
 async function validateAndGenerate({
     ctx,
@@ -83,6 +85,27 @@ async function validateAndGenerate({
     }
 
     const messageTemplate = linkData.spoiler || spoiler ? "|| {url} ||" : "{url}";
+
+    let method: EmbedMethod;
+    switch (ctx.rawInteraction.data.type) {
+        case ApplicationCommandType.ChatInput:
+            method = EmbedMethod.SlashCommand;
+            break;
+        case ApplicationCommandType.Message:
+            method = EmbedMethod.AppContextMenu;
+            break;
+        default:
+            method = EmbedMethod.Unknown;
+            break;
+    }
+
+    await insertEmbedLog({
+        method: method,
+        guildId: ctx.guildId ?? "0",
+        channelId: ctx.channelId,
+        videoId: linkData.id,
+        userId: ctx.authorID,
+    });
 
     return ctx.reply(
         {

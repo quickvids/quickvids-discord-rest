@@ -1,25 +1,22 @@
 import {
     APIApplicationCommand,
     APIApplicationCommandOption,
-    APIButtonComponentBase,
     APIButtonComponentWithURL,
     ApplicationCommandType,
-    ButtonStyle,
     PermissionFlagsBits,
-    RESTPostAPIWebhookWithTokenJSONBody,
+    RESTPostAPIWebhookWithTokenJSONBody
 } from "discord-api-types/v10";
+import { readdirSync } from "fs";
+import { WEB_BASE_URL } from "..";
+import { Guilds } from "../database/schema";
+import { ContextMenuCommand, InteractionCommand, SlashCommand } from "./ApplicationCommand";
+import { AutocompleteContext, ContextMenuContext, SlashCommandContext } from "./CommandContext";
+import { ButtonContext, ComponentCallback, ModalContext } from "./ComponentContext";
+import Database from "./Database";
+import Extension from "./Extension";
 import * as functions from "./Functions";
 import Logger from "./Logger";
-import { readdirSync } from "fs";
-import Database from "./Database";
 import TTRequester from "./TTRequester";
-import { ContextMenuContext, SlashCommandContext } from "./CommandContext";
-import { ContextMenuCommand, InteractionCommand, SlashCommand } from "./ApplicationCommand";
-import { AutocompleteContext } from "./CommandContext";
-import Extension from "./Extension";
-import { Guilds } from "../database/schema";
-import { WEB_BASE_URL } from "..";
-import { ButtonContext, ComponentCallback, ModalContext } from "./ComponentContext";
 
 type BotVote = {
     points: number;
@@ -147,7 +144,8 @@ export default class Client {
         try {
             await command.callback(ctx);
         } catch (err) {
-            this.console.error(err);
+            console.error(err);
+            // this.console.error(err);
             const error_code = "hDFPRERTpb";
             await ctx.reply(
                 `Uh oh. An unepected error occured. Please join our [Support Server](<https://discord.gg/${error_code}>) and report this error.\n\nError Code: \`${error_code}\``,
@@ -205,8 +203,8 @@ export default class Client {
     }
 
     async loadCommands() {
-        const commandFileNames = readdirSync(`${__dirname}/../extensions`).filter(
-            (f) => f.endsWith(".ts") || f.endsWith(".js")
+        const commandFileNames = readdirSync(`${import.meta.dirname}/../extensions`).filter(
+            (f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.startsWith("_")
         );
         const globalCommands: InteractionCommand[] = [];
         const guildOnly: { [id: string]: InteractionCommand[] } = {};

@@ -1,6 +1,6 @@
+import { parse } from "lossless-json";
 import { createShortUrl, getQueryParamValue } from "./Functions";
 import Logger from "./Logger";
-import { parse } from "lossless-json";
 
 export default class TTRequester {
     apiKey: string;

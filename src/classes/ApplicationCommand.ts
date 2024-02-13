@@ -1,17 +1,13 @@
 import {
-    APIApplicationCommandInteractionDataStringOption,
     APIApplicationCommandOption,
-    APIApplicationCommandOptionBase,
-    APIInteractionDataOptionBase,
-    ApplicationCommandOptionType,
     ApplicationCommandType,
-    Snowflake,
+    Snowflake
 } from "discord-api-types/v10";
-import { Permission } from "./Functions";
-import { ReadOnly } from "./OptionTypes";
+import { AutocompleteCallback } from "../types/discord";
 import { AutocompleteContext, SlashCommandContext } from "./CommandContext";
 import Extension from "./Extension";
-import { AutocompleteCallback } from "../types/discord";
+import { Permission } from "./Functions";
+import { ReadOnly } from "./OptionTypes";
 
 export class InteractionCommand {
     id?: Snowflake;

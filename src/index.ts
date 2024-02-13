@@ -14,6 +14,7 @@ export const {
     API_BASE_URL,
     API_TOKEN,
     WEB_BASE_URL,
+    GATEWAY_SECRET
 } = process.env;
 
 if (!PORT) throw new Error("PORT is not defined!");
@@ -25,6 +26,7 @@ if (!MONGODB_DBNAME) throw new Error("MONGODB_DBNAME is not defined!");
 if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined!");
 if (!API_TOKEN) throw new Error("API_TOKEN is not defined!");
 if (!WEB_BASE_URL) throw new Error("WEB_BASE_URL is not defined!");
+if (!GATEWAY_SECRET) throw new Error("GATEWAY_SECRET is not defined!");
 
 const database = new Database(MONGODB_URI, MONGODB_DBNAME);
 const ttrequester = new TTRequester(API_TOKEN, API_BASE_URL, true);

@@ -1,0 +1,23 @@
+version: "3.4"
+
+x-environment: &environment
+  CLIENT_PUBLIC_KEY: ${CLIENT_PUBLIC_KEY}
+  APPLICATION_ID: ${APPLICATION_ID}
+  DISCORD_TOKEN: ${DISCORD_TOKEN}
+  MONGODB_URI: ${MONGODB_URI}
+  MONGODB_DBNAME: ${MONGODB_DBNAME}
+  API_BASE_URL: ${API_BASE_URL}
+  API_TOKEN: ${API_TOKEN}
+  WEB_BASE_URL: ${WEB_BASE_URL}
+  GATEWAY_SECRET: ${GATEWAY_SECRET}
+  TOPGG_TOKEN: ${TOPGG_TOKEN}
+  PORT: "38572"
+
+services:
+  quickvids-discord-rest:
+    image: docker.aidenhaines.com/quickvids-discord-rest
+    environment:
+      <<: *environment
+    ports:
+      - "38573:38572"
+    restart: always

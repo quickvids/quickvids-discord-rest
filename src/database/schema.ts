@@ -1,5 +1,6 @@
-import mongoose, { Document, Schema, SchemaTypes, Model, Types } from "mongoose";
+import mongoose, { Schema, SchemaTypes } from "mongoose";
 import mongooseLong from "mongoose-long";
+import { EmbedMethod } from "../types/discord";
 
 mongooseLong(mongoose);
 
@@ -85,14 +86,14 @@ const guildConfigSchema = new Schema(
     {
         guild_id: { type: String, required: true, unique: true },
         following_cap: { type: Number, default: 3 }, // NOTE: 3 until the trial is over
-        following_default_channel: { type: Number, default: null },
-        following_default_role: { type: Number, default: null },
+        following_default_channel: { type: String, default: null },
+        following_default_role: { type: String, default: null },
         auto_embed: { type: Boolean, default: true },
         origin_delete: { type: Boolean, default: false },
         origin_suppress: { type: Boolean, default: true },
         show_buttons: { type: Boolean, default: true },
         markdown_links: { type: Boolean, default: false },
-        listen_channels: { type: [Number], default: [] },
+        listen_channels: { type: [String], default: [] },
         mention_magic: mentionMagicSchema,
         webhooks: { type: [webhookDataSchema], default: [] },
         following_creators: { type: [singleFolloweeSchema], default: [] },
@@ -104,6 +105,13 @@ const guildConfigSchema = new Schema(
                 start: trialMessages,
                 mid: trialMessages,
                 end: trialMessages,
+            },
+        },
+        billing: {
+            premium: { type: Boolean, default: false },
+            manager: {
+                user_id: { type: String, default: null },
+                username: { type: String, default: null },
             },
         },
     },
@@ -162,9 +170,29 @@ const accountsSchema = new Schema(
             stat_gens_left: { type: Number, required: false, default: 0 },
         },
         favorites: { type: [String], required: false, default: null },
+        log_usage_data: { type: Boolean, required: false, default: true }, // If we create personal identifiable data
+        logs: { type: [SchemaTypes.ObjectId], required: false, default: [] },
     },
     { collection: "Accounts", versionKey: false }
 );
 
 export type Accounts = mongoose.InferSchemaType<typeof accountsSchema>;
 export const Accounts = mongoose.model<Accounts>("Accounts", accountsSchema);
+
+const discordEmbedLogsSchema = new Schema(
+    {
+        method: { type: Number, required: true, default: EmbedMethod.Gateway },
+        user_id: { type: String, required: true, default: "none" },
+        guild_id: { type: String, required: true, default: "none" },
+        channel_id: { type: String, required: true, default: "none" },
+        tiktok_id: { type: String, required: true }, // TikTok Video ID
+        ts: { type: Date, required: true, default: Date.now },
+    },
+    { collection: "DiscordEmbedLogs", versionKey: false }
+);
+
+export type DiscordEmbedLogs = mongoose.InferSchemaType<typeof discordEmbedLogsSchema>;
+export const DiscordEmbedLogs = mongoose.model<DiscordEmbedLogs>(
+    "DiscordEmbedLogs",
+    discordEmbedLogsSchema
+);

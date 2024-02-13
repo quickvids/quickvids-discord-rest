@@ -1,18 +1,18 @@
 import {
-    RESTPostAPICurrentUserCreateDMChannelResult,
-    RESTPostAPIChannelMessageJSONBody,
-    RESTPatchAPIChannelMessageResult,
-    RESTPostAPIChannelMessageResult,
-    RESTGetAPIGuildChannelsResult,
-    RESTGetAPIChannelResult,
-    RESTGetAPIGuildResult,
-    PermissionFlagsBits,
-    RESTPatchAPIInteractionFollowupJSONBody,
     APIEntitlement,
+    PermissionFlagsBits,
+    RESTGetAPIChannelResult,
     RESTGetAPIEntitlementsResult,
+    RESTGetAPIGuildChannelsResult,
+    RESTGetAPIGuildResult,
+    RESTPatchAPIChannelMessageResult,
+    RESTPatchAPIInteractionFollowupJSONBody,
+    RESTPostAPIChannelMessageJSONBody,
+    RESTPostAPIChannelMessageResult,
+    RESTPostAPICurrentUserCreateDMChannelResult,
 } from "discord-api-types/v10";
 
-import { Accounts, GuildConfig, Shortener } from "../database/schema";
+import { Accounts, DiscordEmbedLogs, GuildConfig, Shortener } from "../database/schema";
 import { SmartDescription, TextExtra } from "../types/tiktok";
 
 export type Permission =
@@ -84,14 +84,23 @@ export async function sendMessage(
     channelId: string,
     token: string
 ): Promise<RESTPostAPIChannelMessageResult | null> {
-    return await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-        headers: {
-            Authorization: `Bot ${token}`,
-            "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify(data),
-    }).then((res) => res.json());
+    const response = await fetch(
+        `https://discord.com/api/v10/channels/${channelId}/messages`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bot ${token}`,
+            },
+            body: JSON.stringify(data),
+        }
+    );
+
+    if (response.ok) {
+        return (await response.json()) as RESTPostAPIChannelMessageResult;
+    } else {
+        return null;
+    }
 }
 
 export async function editMessage(
@@ -100,14 +109,23 @@ export async function editMessage(
     messageId: string,
     token: string
 ): Promise<RESTPatchAPIChannelMessageResult | null> {
-    return await fetch(`https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`, {
-        headers: {
-            Authorization: `Bot ${token}`,
-            "Content-Type": "application/json",
-        },
-        method: "POST",
-        body: JSON.stringify(data),
-    }).then((res) => res.json());
+    const response = await fetch(
+        `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`,
+        {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bot ${token}`,
+            },
+            body: JSON.stringify(data),
+        }
+    );
+
+    if (response.ok) {
+        return (await response.json()) as RESTPatchAPIChannelMessageResult;
+    } else {
+        return null;
+    }
 }
 
 export async function editInteractionResponse(
@@ -116,15 +134,22 @@ export async function editInteractionResponse(
     interactionToken: string,
     messageId: string
 ): Promise<RESTPatchAPIChannelMessageResult | null> {
-    return await fetch(
+    const response = await fetch(
         `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/${messageId}`,
         {
+            method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(data),
         }
-    ).then((res) => res.json());
+    );
+
+    if (response.ok) {
+        return (await response.json()) as RESTPatchAPIChannelMessageResult;
+    } else {
+        return null;
+    }
 }
 
 export async function createDMChannel(
@@ -144,7 +169,7 @@ export async function createDMChannel(
     );
 
     if (response.ok) {
-        return await response.json();
+        return (await response.json()) as RESTPostAPICurrentUserCreateDMChannelResult;
     } else {
         return null;
     }
@@ -165,7 +190,7 @@ export async function fetchGuild(
     );
 
     if (response.ok) {
-        return await response.json();
+        return (await response.json()) as RESTGetAPIGuildResult;
     } else {
         return null;
     }
@@ -186,7 +211,7 @@ export async function fetchChannel(
     );
 
     if (response.ok) {
-        return await response.json();
+        return (await response.json()) as RESTGetAPIChannelResult;
     } else {
         return null;
     }
@@ -207,7 +232,7 @@ export async function fetchGuildChannels(
     );
 
     if (response.ok) {
-        return await response.json();
+        return (await response.json()) as RESTGetAPIGuildChannelsResult;
     } else {
         return null;
     }
@@ -230,7 +255,7 @@ export async function fetchApplicationEntitlements(
     );
 
     if (response.ok) {
-        return await response.json();
+        return await response.json() as RESTGetAPIEntitlementsResult;
     } else {
         return null;
     }
@@ -262,7 +287,7 @@ export enum LinkIdType {
 
 type LinkData = {
     idType: LinkIdType;
-    id: string | number;
+    id: string;
     url: string;
     type: MediaType;
     spoiler: boolean;
@@ -470,11 +495,14 @@ export async function getGuildConfig(guildId: string): Promise<GuildConfig> {
 //       user_id: "324352543612469258"
 //     }
 //   ]
+import { HydratedDocument } from "mongoose";
 
 export async function getAccount(
     userId: string,
     create: boolean = false
-): Promise<Accounts | null> {
+): Promise<HydratedDocument<Accounts> | null> {
+    // ) {
+
     const account = await Accounts.findOne({ user_id: userId });
     if (account) return account;
 
@@ -611,4 +639,45 @@ export async function checkUserFavorite(userId: string, videoId: string): Promis
     }
 
     return false;
+}
+
+export async function insertEmbedLog({
+    guildId,
+    channelId,
+    videoId,
+    userId,
+    method,
+}: {
+    guildId: string;
+    channelId: string;
+    videoId: string;
+    userId: string;
+    method: number;
+}): Promise<void> {
+    const user = await getAccount(userId, true);
+    if (!user) {
+        return;
+    }
+
+    // NOTE: A user's logs are a list of ObjectIds, so we need to use a separate list for embed logs.
+    if (!user.logs) {
+        user.logs = [];
+    }
+    if (user.log_usage_data !== undefined && user.log_usage_data === false) {
+        userId = "none";
+    }
+
+    const log = new DiscordEmbedLogs({
+        method: method,
+        guild_id: guildId,
+        channel_id: channelId,
+        tiktok_id: videoId,
+        user_id: userId,
+    });
+
+    await log.save();
+
+    user.logs.push(log._id);
+
+    await user.save();
 }

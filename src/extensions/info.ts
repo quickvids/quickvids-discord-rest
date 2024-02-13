@@ -9,6 +9,8 @@ export default class Info extends Extension {
         description: "Get some general information and statistics about QuickVids.",
     })
     async info(ctx: SlashCommandContext): Promise<void> {
+        return ctx.reply("🚧 This command is being worked on. 🏗️", { ephemeral: true });
+
         const stats = await ctx.client.database.getBotStats();
         const since = new Date().setHours(0, 0, 0, 0);
         const timestamp = `<t:${Math.floor(since / 1000)}:R>`;

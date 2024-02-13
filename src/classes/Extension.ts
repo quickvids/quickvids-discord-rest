@@ -1,9 +1,9 @@
 import { APIApplicationCommandOption, Snowflake } from "discord-api-types/v10";
-import { Permission } from "./Functions";
-import { SlashCommandContext } from "./CommandContext";
-import { ContextMenuCommand, SlashCommand } from "./ApplicationCommand";
 import { AutocompleteCallback } from "../types/discord";
+import { ContextMenuCommand, SlashCommand } from "./ApplicationCommand";
+import { SlashCommandContext } from "./CommandContext";
 import { ComponentCallback } from "./ComponentContext";
+import { Permission } from "./Functions";
 
 export default class Extension {
     name: string;

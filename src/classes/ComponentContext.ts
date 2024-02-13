@@ -1,6 +1,3 @@
-import { FastifyReply } from "fastify";
-import Client from "./Client";
-import Extension from "./Extension";
 import {
     APIBaseInteraction,
     APIEntitlement,
@@ -15,7 +12,9 @@ import {
     MessageFlags,
     Snowflake,
 } from "discord-api-types/v10";
-import { InteractionCommand } from "./ApplicationCommand";
+import { FastifyReply } from "fastify";
+import Client from "./Client";
+import Extension from "./Extension";
 
 export class ComponentCallback {
     custom_id: RegExp;

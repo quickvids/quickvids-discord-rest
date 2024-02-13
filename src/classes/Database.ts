@@ -1,7 +1,6 @@
-import mongoose from "mongoose";
-import { type Mongoose } from "mongoose";
-import Logger from "./Logger";
+import mongoose, { type Mongoose } from "mongoose";
 import { BotStats } from "../database/schema";
+import Logger from "./Logger";
 
 export default class Database {
     console: Logger;

@@ -3,7 +3,7 @@
   "module": "src/server.ts",
   "scripts": {
     "start": "bun run --watch src/index.ts",
-    "register": "bun run src/utils/register.ts"
+    "stable": "bun run src/index.ts"
   },
   "devDependencies": {
     "bun-types": "latest"

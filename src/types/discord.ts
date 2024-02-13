@@ -37,3 +37,10 @@ export type APIApplicationCommandAutocompleteInteraction = APIBaseInteraction<
             "data"
         >
     >;
+
+export enum EmbedMethod {
+    Unknown = 0,
+    SlashCommand = 1,
+    Gateway = 2,
+    AppContextMenu = 3,
+}
