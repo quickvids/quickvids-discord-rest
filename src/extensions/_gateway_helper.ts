@@ -143,5 +143,7 @@ export async function gatewayValidateAndGenerate({ ctx }: { ctx: InteractionCont
         content: messageTemplate,
         components: guildConfig.show_buttons ? components : null,
         error: false,
+        origin_delete: guildConfig.origin_delete,
+        origin_suppress: guildConfig.origin_suppress,
     };
 }
