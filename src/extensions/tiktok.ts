@@ -181,6 +181,8 @@ export default class TikTok extends Extension {
                 required: false,
             },
         ],
+        integration_types: [0, 1],
+        contexts: [0, 1, 2],
         dmPermission: true,
     })
     async tiktok(ctx: SlashCommandContext): Promise<void> {

@@ -42,6 +42,8 @@ export function slash_command({
     scopes = [],
     autocompleteCallbacks = null,
     extension,
+    integration_types,
+    contexts
 }: {
     name: string;
     description: string;
@@ -52,6 +54,8 @@ export function slash_command({
     scopes?: Snowflake[];
     autocompleteCallbacks?: AutocompleteCallback[] | null;
     extension?: Extension;
+    integration_types?: number[];
+    contexts?: number[]
 }): Function {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         const command = new SlashCommand(
@@ -64,7 +68,9 @@ export function slash_command({
             scopes,
             extension,
             descriptor.value,
-            autocompleteCallbacks
+            autocompleteCallbacks,
+            integration_types,
+            contexts
         );
         if (!target.commands) {
             target.commands = new Map();
