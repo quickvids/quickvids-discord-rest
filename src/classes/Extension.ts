@@ -52,6 +52,8 @@ export function slash_command({
     scopes?: Snowflake[];
     autocompleteCallbacks?: AutocompleteCallback[] | null;
     extension?: Extension;
+    integration_types?: number[];
+    contexts?: number[]
 }): Function {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         const command = new SlashCommand(
