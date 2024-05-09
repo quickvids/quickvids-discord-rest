@@ -91,11 +91,11 @@ export default class TTRequester {
             let videoUrl: string;
             if (data.aweme_detail.video.play_addr_h264 === undefined) {
                 videoUrl = data.aweme_detail.video.download_addr.url_list.find((url: string) =>
-                    (url.includes("tiktokv.com") || url.includes("tiktokv.us"))
+                    url.includes("tiktokv.")
                 );
             } else {
                 videoUrl = data.aweme_detail.video.play_addr_h264.url_list.find((url: string) =>
-                    (url.includes("tiktokv.com") || url.includes("tiktokv.us"))
+                    url.includes("tiktokv.")
                 );
             }
 
