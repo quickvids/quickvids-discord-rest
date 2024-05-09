@@ -90,12 +90,12 @@ export default class TTRequester {
             // check if play_addr_h264 is undefined
             let videoUrl: string;
             if (data.aweme_detail.video.play_addr_h264 === undefined) {
-                videoUrl = data.aweme_detail.video.play_addr.url_list.find((url: string) =>
-                    url.includes("tiktokv.com")
+                videoUrl = data.aweme_detail.video.download_addr.url_list.find((url: string) =>
+                    (url.includes("tiktokv.com") || url.includes("tiktokv.us"))
                 );
             } else {
                 videoUrl = data.aweme_detail.video.play_addr_h264.url_list.find((url: string) =>
-                    url.includes("tiktokv.com")
+                    (url.includes("tiktokv.com") || url.includes("tiktokv.us"))
                 );
             }
 
