@@ -182,6 +182,7 @@ export default class Client {
             this.console.error(err);
         }
     }
+
     async handleModal(ctx: ModalContext) {
         const callback = this.getComponentCallback(ctx.custom_id) as ComponentCallback;
         if (!callback || !callback.callback)
@@ -206,8 +207,8 @@ export default class Client {
         const commandFileNames = readdirSync(`${import.meta.dirname}/../extensions`).filter(
             (f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.startsWith("_")
         );
-        const globalCommands: InteractionCommand[] = [];
-        const guildOnly: { [id: string]: InteractionCommand[] } = {};
+        const globalInteractions: InteractionCommand[] = [];
+        const guildInteractions: { [id: string]: InteractionCommand[] } = {};
         for (const commandFileName of commandFileNames) {
             const extension = new (
                 await import(`../extensions/${commandFileName}`)
@@ -219,16 +220,21 @@ export default class Client {
 
             for (const command of extension.commands.values()) {
                 if (!command.scopes || command.scopes.length === 0) {
-                    globalCommands.push(command);
+                    globalInteractions.push(command);
                 } else {
                     command.scopes.forEach((guildId) => {
-                        if (!(guildId in guildOnly)) guildOnly[guildId] = [];
-                        guildOnly[guildId].push(command);
+                        if (!(guildId in guildInteractions)) guildInteractions[guildId] = [];
+                        guildInteractions[guildId].push(command);
                     });
                 }
             }
         }
 
+        console.log(JSON.stringify(globalInteractions));
+
+        await this.updateCommands(globalInteractions);
+
+        return
         const devMode = process.argv.includes("dev");
         if (devMode)
             this.console.log(
@@ -259,6 +265,8 @@ export default class Client {
     loadComponentCallbacks() {}
 
     async updateCommands(commands: InteractionCommand[], guildId?: string) {
+        // console.log("paused");
+        // return
         if (!(await this.compareCommands(commands, guildId))) return;
         this.console.log("Updating commands...");
 
@@ -379,6 +387,14 @@ export default class Client {
                       .toString()
                 : null,
         };
+
+        if (command.integration_types && command.integration_types.length > 0) {
+            toReturn.integration_types = command.integration_types;
+        }
+
+        if (command.contexts && command.contexts.length > 0) {
+            toReturn.contexts = command.contexts;
+        }
 
         if (command.type === ApplicationCommandType.ChatInput) {
             let _command = command as SlashCommand;

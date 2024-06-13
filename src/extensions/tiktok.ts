@@ -77,7 +77,7 @@ async function validateAndGenerate({
             });
         }
 
-        qv_short_url = tiktokData.aweme_detail.qv_short_url;
+        qv_short_url = tiktokData.qv_short_url;
     }
 
     if (qv_short_url === null) {
@@ -288,8 +288,8 @@ export default class TikTok extends Extension {
         }
 
         let description = cleanDescription(
-            tiktokData.aweme_detail.desc,
-            tiktokData.aweme_detail.text_extra
+            tiktokData.desc,
+            tiktokData.text_extra
         );
 
         if (description.cleaned.length > 256) {
@@ -301,42 +301,42 @@ export default class TikTok extends Extension {
             description: "——————",
             color: 0x5865f2,
             author: {
-                name: tiktokData.aweme_detail.author.nickname,
-                icon_url: tiktokData.aweme_detail.author.avatar_thumb.url_list[0],
-                url: `https://tiktok.com/@${tiktokData.aweme_detail.author.unique_id}`,
+                name: tiktokData.author.nickname,
+                icon_url: tiktokData.author.avatar_thumb.url_list[0],
+                url: `https://tiktok.com/@${tiktokData.author.unique_id}`,
             },
             thumbnail: {
-                url: tiktokData.aweme_detail.video.cover.url_list[0],
+                url: tiktokData.video.cover.url_list[0],
             },
             fields: [
                 {
                     name: "Views 👀",
-                    value: (+tiktokData.aweme_detail.statistics.play_count).toLocaleString(),
+                    value: (+tiktokData.statistics.play_count).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Likes ❤️",
-                    value: (+tiktokData.aweme_detail.statistics.digg_count).toLocaleString(),
+                    value: (+tiktokData.statistics.digg_count).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Comments 💬",
-                    value: (+tiktokData.aweme_detail.statistics.comment_count).toLocaleString(),
+                    value: (+tiktokData.statistics.comment_count).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Shares 🔃",
-                    value: (+tiktokData.aweme_detail.statistics.share_count).toLocaleString(),
+                    value: (+tiktokData.statistics.share_count).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Downloads 📥",
-                    value: (+tiktokData.aweme_detail.statistics.download_count).toLocaleString(),
+                    value: (+tiktokData.statistics.download_count).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Created 🕰️",
-                    value: `<t:${Math.floor(tiktokData.aweme_detail.create_time)}:R>`,
+                    value: `<t:${Math.floor(tiktokData.create_time)}:R>`,
                     inline: true,
                 },
             ],
@@ -397,7 +397,7 @@ export default class TikTok extends Extension {
                                 emoji: {
                                     name: "🎵",
                                 },
-                                custom_id: `m_id${tiktokData.aweme_detail.music.mid}`,
+                                custom_id: `m_id${tiktokData.music.mid}`,
                             },
                             {
                                 type: 2,

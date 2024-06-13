@@ -10,7 +10,7 @@ export default class TTRequester {
 
     constructor(apiKey: string, apiUrlBase: string, createShortUrl = false) {
         this.apiKey = apiKey;
-        this.apiUrlBase = `${apiUrlBase}/v1/tiktok`;
+        this.apiUrlBase = `${apiUrlBase}/v1`;
         this.createShortUrls = createShortUrl;
         this.console = new Logger("TTRequester");
     }
@@ -24,7 +24,7 @@ export default class TTRequester {
         const url = this.apiUrlBase + endpoint;
         const reqHeaders = {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
+            Authorization: `${this.apiKey}`,
             ...headers,
         };
         const reqBody = body ? JSON.stringify(body) : undefined;
@@ -49,8 +49,13 @@ export default class TTRequester {
     async fetchPostInfo(postId: string | number): Promise<any | Error> {
         let data: null | any = null;
         try {
-            data = await this.request("GET", `/detail/post/${postId}`);
+            data = await this.request("POST", `/videos/detail/`, {
+                "aweme_ids": [
+                    postId
+                ]
+            });
             if (!data) return null;
+
 
             if (data.status_code.value !== "0") {
                 const error_code = "DbrqXPgP4G";
@@ -59,63 +64,96 @@ export default class TTRequester {
                 );
             }
 
-            if (!data.aweme_detail) {
+            // if (data.aweme_status[0].status.value !== "0") {
+            //     const error_code = "QNkBD4zzzA";
+            //     return new Error(
+            //         `This TikTok is not available.\n\nThis could be because the TikTok was deleted, the owner of the TikTok has a private account, or the TikTok is under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+            //     );
+            // }
+
+
+            let error_code: string;
+            switch (data.aweme_status[0].status) {
+                case 0:
+                    break;
+                case 1:
+                    // Video no longer exist or just doesnt exist
+                    error_code = "QNkBD4zzzA";
+                    return new Error(
+                        `This TikTok is not available.\n\nThis could be because the TikTok was deleted, never made public, or currently under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+                    );
+
+                case 5:
+                    // Video is private
+                    error_code = "QNkBD4zzzA";
+                    return new Error(
+                        `This video was made private by the Creator.\n\nQuickVids only has access to public videos.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+                    );
+            }
+
+            if (!data.aweme_details[0]) {
                 const error_code = "QNkBD4zzzA";
                 return new Error(
                     `This TikTok is not available.\n\nThis could be because the TikTok was deleted, the owner of the TikTok has a private account, or the TikTok is under review.\n\nIf you believe this is a mistake, please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
                 );
             }
         } catch (e) {
-            this.console.error(e);
+            console.error(e);
             const error_code = "WrkKanvMfC";
             return new Error(
                 `Sorry, there was an error fetching that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
             );
         }
 
+        const postData = data.aweme_details[0];
+
         if (this.createShortUrls) {
-            // string of post id
-            if (typeof postId === "number") {
-                postId = postId.toString();
-            }
-            // if image_post_info do no create short url
-            if (data.aweme_detail.image_post_info !== undefined) {
-                return data;
-            }
+            // fetch the public API
+            const data = await fetch(
+                `${process.env.API_BASE_URL}/v2/quickvids/shorturl`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        input_text: `https://m.tiktok.com/v/${postId}`
+                    }),
+                }
+            )
 
-            // data.aweme_detail.video.play_addr_h264.url_list
-            // get the file_id from the url_list (get the url with "tiktokv.com" in it")
-            // const videoUrl = data.aweme_detail.video.play_addr_h264.url_list[2];
 
-            // check if play_addr_h264 is undefined
-            let videoUrl: string;
-            if (data.aweme_detail.video.play_addr_h264 === undefined) {
-                videoUrl = data.aweme_detail.video.download_addr.url_list.find((url: string) =>
-                    url.includes("tiktokv.")
-                );
-            } else {
-                videoUrl = data.aweme_detail.video.play_addr_h264.url_list.find((url: string) =>
-                    url.includes("tiktokv.")
+            if (data.status !== 200) {
+                const error_code = "WrkKanvMfC";
+                return new Error(
+                    `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
                 );
             }
 
-            const fileId = getQueryParamValue(videoUrl, "file_id");
-            const videUri = getQueryParamValue(videoUrl, "video_id");
+            const shorturl_response: any = await data.json();
 
-            const shortUrl = await createShortUrl(postId, videUri, fileId);
-            if (shortUrl) {
-                data.aweme_detail.qv_short_url = shortUrl;
+
+            if (shorturl_response.quickvids_url === undefined) {
+                const error_code = "WrkKanvMfC";
+                return new Error(
+                    `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``
+                );
             }
+
+            postData.qv_short_url = shorturl_response.quickvids_url;
+
         }
 
-        return data;
+        return postData;
     }
 
     async fetchMusicInfo(musicId: string | number): Promise<any | null> {
         this.console.log(`Fetching music info | Music ID: ${musicId}`);
         let data: null | any = null;
         try {
-            data = await this.request("GET", `/detail/music/${musicId}`);
+            data = await this.request("POST", "/music/detail/", {
+                "music_id": musicId
+            });
 
             if (!data) return null;
 

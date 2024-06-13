@@ -64,7 +64,7 @@ export default class Server {
     registerRoutes() {
         this.router.post("/interactions", this.handleRequest.bind(this));
         this.router.post("/gateway", this.handleGatewayRequest.bind(this));
-        this.router.get("/", (_, res) => res.redirect("https://quickvids.win"));
+        this.router.get("/", (_, res) => res.redirect(process.env.WEB_BASE_URL!));
     }
 
     async handleGatewayRequest(
