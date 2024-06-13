@@ -1,8 +1,4 @@
-import {
-    APIApplicationCommandOption,
-    ApplicationCommandType,
-    Snowflake
-} from "discord-api-types/v10";
+import { APIApplicationCommandOption, ApplicationCommandType, Snowflake } from "discord-api-types/v10";
 import { AutocompleteCallback } from "../types/discord";
 import { AutocompleteContext, SlashCommandContext } from "./CommandContext";
 import Extension from "./Extension";
@@ -20,6 +16,8 @@ export class InteractionCommand {
     nsfw: boolean;
     callback?: (ctx: any) => Promise<void>;
     type: ApplicationCommandType = ApplicationCommandType.ChatInput;
+    integration_types?: number[];
+    contexts?: number[];
 
     constructor(
         name: string,
@@ -29,7 +27,9 @@ export class InteractionCommand {
         description?: string,
         scopes?: Snowflake[],
         extension?: Extension,
-        callback?: (ctx: any) => Promise<void>
+        callback?: (ctx: any) => Promise<void>,
+        integration_types?: number[],
+        contexts?: number[]
     ) {
         this.name = name;
         this.scopes = scopes || [];
@@ -39,6 +39,8 @@ export class InteractionCommand {
         this.description = description || this.description;
         this.extension = extension;
         this.callback = callback;
+        this.integration_types = integration_types || [];
+        this.contexts = contexts || [];
     }
 
     mention(subcommand?: string) {
@@ -66,7 +68,9 @@ export class SlashCommand extends InteractionCommand {
         scopes?: Snowflake[],
         extension?: Extension,
         callback?: (ctx: SlashCommandContext) => Promise<void>,
-        autocompleteCallbacks?: AutocompleteCallback[] | null
+        autocompleteCallbacks?: AutocompleteCallback[] | null,
+        integration_types?: number[],
+        contexts?: number[]
     ) {
         super(
             name,
@@ -76,7 +80,9 @@ export class SlashCommand extends InteractionCommand {
             description,
             scopes,
             extension,
-            callback
+            callback,
+            integration_types,
+            contexts
         );
         this.description = description;
         this.options = options || null;
@@ -159,6 +165,7 @@ export class SlashCommand extends InteractionCommand {
 // NOTE: This is hard typed to the message type since it's our only use case for now
 export class ContextMenuCommand extends InteractionCommand {
     type: ApplicationCommandType = ApplicationCommandType.Message;
+
     constructor(
         name: string,
         defaultMemberPermissions: Permission[] | null,
