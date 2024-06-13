@@ -6,6 +6,7 @@ import {
     APIApplicationCommandInteractionDataSubcommandOption,
     APIApplicationCommandOption,
     APIApplicationCommandOptionChoice,
+    APIAuthorizingIntegrationOwnersMap,
     APIBaseInteraction,
     APIChannel,
     APIChatInputApplicationCommandInteraction,
@@ -43,6 +44,7 @@ export default interface InteractionContext
     member?: APIInteractionGuildMember;
     user: APIUser;
     appPermissions?: string;
+    context?: number
 }
 
 export class SlashCommandContext implements InteractionContext {
@@ -70,6 +72,9 @@ export class SlashCommandContext implements InteractionContext {
     channel?: Partial<APIChannel> & Pick<APIChannel, "id" | "type">;
     entitlements: APIEntitlement[];
     defered: boolean;
+    context?: number
+    authorizing_integration_owners: APIAuthorizingIntegrationOwnersMap;
+    app_permissions: string;
 
     constructor(
         // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
@@ -113,6 +118,9 @@ export class SlashCommandContext implements InteractionContext {
 
         this.entitlements = interaction.entitlements;
         this.defered = false;
+        this.authorizing_integration_owners = interaction.authorizing_integration_owners;
+        this.context = interaction.context
+        this.app_permissions = interaction.app_permissions;
     }
 
     getOption<O extends APIApplicationCommandOption>(name: string): OptionType<O> | undefined {
@@ -240,6 +248,9 @@ export class ContextMenuContext implements InteractionContext {
     type: InteractionType.ApplicationCommand;
     version;
     locale;
+    context?: number
+    authorizing_integration_owners: APIAuthorizingIntegrationOwnersMap;
+    app_permissions: string;
 
     constructor(
         // interaction: APIChatInputApplicationCommandInteractionWithEntitlements,
@@ -275,6 +286,10 @@ export class ContextMenuContext implements InteractionContext {
         this.channel = interaction.channel;
 
         this.entitlements = interaction.entitlements;
+
+        this.context = interaction.context
+        this.authorizing_integration_owners = interaction.authorizing_integration_owners;
+        this.app_permissions = interaction.app_permissions;
     }
 
     reply(data: string | APIInteractionResponseCallbackData, options?: { ephemeral?: boolean }) {
@@ -334,6 +349,8 @@ export class AutocompleteContext implements APIApplicationCommandAutocompleteInt
     type: number;
     version;
     locale;
+    authorizing_integration_owners: APIAuthorizingIntegrationOwnersMap;
+    app_permissions: string;
 
     constructor(
         interaction: APIApplicationCommandAutocompleteInteraction,
@@ -365,6 +382,9 @@ export class AutocompleteContext implements APIApplicationCommandAutocompleteInt
         this.channel = interaction.channel;
 
         this.entitlements = interaction.entitlements;
+
+        this.authorizing_integration_owners = interaction.authorizing_integration_owners;
+        this.app_permissions = interaction.app_permissions;
     }
 
     reply({ choices }: { choices?: APIApplicationCommandOptionChoice[] }) {

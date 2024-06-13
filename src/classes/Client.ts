@@ -630,12 +630,20 @@ export default class Client {
     }
 
     async deleteMessage({ channel_id, message_id }: { channel_id: string; message_id: string }) {
-        await fetch(`${this.discordAPIUrl}/channels/${channel_id}/messages/${message_id}`, {
+        console.log(`${this.discordAPIUrl}/channels/${channel_id}/messages/${message_id}`)
+        const response = await fetch(`${this.discordAPIUrl}/channels/${channel_id}/messages/${message_id}`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bot ${this.token}`,
             },
         });
+
+        if (!response.ok) {
+            console.error(`Failed to delete message ${message_id} in channel ${channel_id}`);
+            console.error(await response.text());
+        }
+
+
     }
 }

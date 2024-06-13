@@ -174,7 +174,9 @@ export class ContextMenuCommand extends InteractionCommand {
         description: string,
         scopes?: Snowflake[],
         extension?: Extension,
-        callback?: (ctx: any) => Promise<void>
+        callback?: (ctx: any) => Promise<void>,
+        integration_types?: number[],
+        contexts?: number[]
     ) {
         super(
             name,
@@ -184,7 +186,9 @@ export class ContextMenuCommand extends InteractionCommand {
             description,
             scopes,
             extension,
-            callback
+            callback,
+            integration_types,
+            contexts
         );
     }
 }

@@ -103,6 +103,9 @@ export function context_menu({
     description = "No description set",
     scopes = [],
     extension,
+    integration_types,
+    contexts
+
 }: {
     name: string;
     defaultMemberPermissions?: Permission[] | null;
@@ -111,6 +114,8 @@ export function context_menu({
     description?: string;
     scopes?: Snowflake[];
     extension?: Extension;
+    integration_types?: number[];
+    contexts?: number[];
 }): Function {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         const command = new ContextMenuCommand(
@@ -121,7 +126,9 @@ export function context_menu({
             description,
             scopes,
             extension,
-            descriptor.value
+            descriptor.value,
+            integration_types,
+            contexts
         );
 
         if (!target.commands) {

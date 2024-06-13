@@ -7,6 +7,7 @@ import {
     ButtonStyle,
     ChannelType,
     ComponentType,
+    InteractionContextType,
 } from "discord-api-types/v10";
 import { ContextMenuContext, SlashCommandContext } from "../classes/CommandContext";
 import { ButtonContext } from "../classes/ComponentContext";
@@ -107,34 +108,44 @@ async function validateAndGenerate({
         userId: ctx.authorID,
     });
 
+    ctx.context
+
+    let components = [
+        {
+            type: ComponentType.Button,
+            label: "Info",
+            style: ButtonStyle.Secondary,
+            emoji: {
+                name: "🌐",
+            },
+            custom_id: `v_id${linkData.id}`,
+        },
+        {
+            type: ComponentType.Button,
+            style: ButtonStyle.Danger,
+            emoji: {
+                name: "🗑️",
+            },
+            custom_id: `delete${ctx.authorID}`,
+        },
+    ]
+
+    if (ctx.context && ctx.context === InteractionContextType.PrivateChannel) {
+        // remove the delete button
+        components.pop();
+    }
+
     return ctx.reply(
         {
             content: messageTemplate.replace("{url}", qv_short_url),
+            // @ts-ignore
             components: guildConfig.show_buttons
                 ? [
-                      {
-                          type: ComponentType.ActionRow,
-                          components: [
-                              {
-                                  type: ComponentType.Button,
-                                  label: "Info",
-                                  style: ButtonStyle.Secondary,
-                                  emoji: {
-                                      name: "🌐",
-                                  },
-                                  custom_id: `v_id${linkData.id}`,
-                              },
-                              {
-                                  type: ComponentType.Button,
-                                  style: ButtonStyle.Danger,
-                                  emoji: {
-                                      name: "🗑️",
-                                  },
-                                  custom_id: `delete${ctx.authorID}`,
-                              },
-                          ],
-                      },
-                  ]
+                    {
+                        type: ComponentType.ActionRow,
+                        components: components,
+                    },
+                ]
                 : [],
         },
         { ephemeral: ephemeral }
@@ -147,6 +158,8 @@ export default class TikTok extends Extension {
     @context_menu({
         name: "Convert 📸",
         dmPermission: true,
+        integration_types: [0, 1],
+        contexts: [0, 1, 2],
     })
     async tiktokContextMenu(ctx: ContextMenuContext): Promise<void> {
         const target_message = ctx.resolved?.messages?.[ctx.rawData.target_id];
@@ -264,6 +277,7 @@ export default class TikTok extends Extension {
         if (ctx.authorID !== id || !hasPermission("ManageMessages", ctx.data.member?.permissions)) {
             return ctx.reply("You cannot delete someone else's message.", { ephemeral: true });
         }
+
 
         await ctx.client.deleteMessage({
             channel_id: ctx.data.message.channel_id,
