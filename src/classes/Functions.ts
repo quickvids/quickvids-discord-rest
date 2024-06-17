@@ -295,7 +295,7 @@ type Pattern = [RegExp, MediaType];
 
 const patterns: Pattern[] = [
     [
-        /(?<http>http:|https:\/\/)?(www\.)?tiktok\.com\/(@.{1,24}|@[a-zA-Z0-9-_]{50,80})\/video\/(?<long_id>\d{1,30})/g,
+        /(?<http>http:|https:\/\/)?(www\.)?tiktok\.com\/(@.{1,24}|@[a-zA-Z0-9-_]{50,80})\/(video|photo)\/(?<long_id>\d{1,30})/g,
         MediaType.TikTokVideo,
     ],
     [/(?<http>http:|https:\/\/)?(www\.)?tiktok.com\/t\/(?<short_id>\w{5,15})/g, MediaType.UNKNOWN],
@@ -407,53 +407,7 @@ function generateSlug(): string {
     return slug;
 }
 
-/**
- * Generated a QuickVids short url from a tiktok post
- * @param videoId The id of the tiktok.
- * @param videoUri The uri of the video.
- * @param fileId The id of the file.
- * @param douyin Whether the video is from douyin. (China tiktok)
- * @returns The shortened url.
- */
-export async function createShortUrl(
-    videoId: string,
-    videoUri: string | null = "",
-    fileId: string | null = "",
-    douyin = false
-): Promise<string> {
-    const existingEntry = await Shortener.findOne({ video_id: videoId });
-    if (existingEntry) {
-        const url = `${process.env.WEB_BASE_URL}/${existingEntry.slug}`;
-        return url;
-    }
 
-    let slug = generateSlug();
-
-    while (await Shortener.findOne({ slug: slug })) {
-        slug = generateSlug();
-        console.log("slug collision, regenerating");
-    }
-
-    const shortener = new Shortener({
-        slug: slug,
-        video_id: videoId,
-        file_id: fileId,
-        video_uri: videoUri,
-        douyin: douyin,
-    });
-
-    try {
-        await shortener.save();
-    } catch (err) {
-        console.log(err);
-        throw new Error("Failed to create short url");
-    }
-
-    const shortUrl = `${process.env.WEB_BASE_URL}/${shortener.slug}`;
-
-    console.log(`Created short url for ${videoId} | ${shortUrl}`);
-    return shortUrl;
-}
 
 export function getQueryParamValue(url: string, paramName: string): string | null {
     const match = url.match(new RegExp(`[?&]${paramName}=([^&]+)`));
@@ -536,11 +490,8 @@ export async function verifyPremium(
     return false;
 }
 
-export async function checkExistingQVShortUrl(videoId: string | number): Promise<string | null> {
-    if (typeof videoId === "number") {
-        videoId = videoId.toString(); // The DB is not using bigint, so we need to convert it to a string.
-    }
-    const existingEntry = await Shortener.findOne({ video_id: videoId });
+export async function checkExistingQVShortUrl(videoId: string): Promise<string | null> {
+    const existingEntry = await Shortener.findOne({ aweme_id: videoId });
     if (existingEntry) {
         const url = `${process.env.WEB_BASE_URL}/${existingEntry.slug}`;
         return url;

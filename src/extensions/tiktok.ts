@@ -46,7 +46,7 @@ async function validateAndGenerate({
 
     let guildConfig: GuildConfigModel;
 
-    if (ctx.channel?.type === ChannelType.DM) {
+    if (ctx.channel?.type === ChannelType.DM || ctx.channel?.type === ChannelType.GroupDM) {
         guildConfig = new GuildConfigModel({ guild_id: "0" });
     } else {
         guildConfig = await getGuildConfig(ctx.guildId!);
@@ -68,17 +68,50 @@ async function validateAndGenerate({
     if (existingLink !== null && guildConfig.markdown_links === false) {
         qv_short_url = existingLink;
     } else {
-        const tiktokData = await ctx.client.ttrequester.fetchPostInfo(linkData.id);
+        // const tiktokData = await ctx.client.ttrequester.fetchPostInfo(linkData.id);
 
-        if (tiktokData === null) {
-            return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
-        } else if (tiktokData instanceof Error) {
-            return ctx.reply(tiktokData.message, {
-                ephemeral: true,
-            });
+        // if (tiktokData === null) {
+        //     return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
+        // } else if (tiktokData instanceof Error) {
+        //     return ctx.reply(tiktokData.message, {
+        //         ephemeral: true,
+        //     });
+        // }
+
+        // qv_short_url = tiktokData.qv_short_url;
+        const data = await fetch(
+            `${process.env.API_BASE_URL}/v2/quickvids/shorturl`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    input_text: `https://m.tiktok.com/v/${linkData.id}`,
+                    detailed: false
+                }),
+            }
+        )
+
+        if (data.status !== 200) {
+            const error_code = "WrkKanvMfC";
+            return ctx.friendlyError(
+                `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+                error_code
+            );
         }
 
-        qv_short_url = tiktokData.qv_short_url;
+        const shorturl_response: any = await data.json();
+
+        if (shorturl_response.quickvids_url === undefined) {
+            const error_code = "WrkKanvMfC";
+            return ctx.friendlyError(
+                `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+                error_code
+            );
+        }
+
+        qv_short_url = shorturl_response.quickvids_url;
     }
 
     if (qv_short_url === null) {
@@ -108,8 +141,6 @@ async function validateAndGenerate({
         userId: ctx.authorID,
     });
 
-    ctx.context
-
     let components = [
         {
             type: ComponentType.Button,
@@ -134,7 +165,7 @@ async function validateAndGenerate({
         // remove the delete button
         components.pop();
     }
-
+    console.log(`Embedding: ${linkData.id} | ${qv_short_url} | User: ${ctx.authorID}`);
     return ctx.reply(
         {
             content: messageTemplate.replace("{url}", qv_short_url),
@@ -152,12 +183,12 @@ async function validateAndGenerate({
     );
 }
 
+
 export default class TikTok extends Extension {
     name = "tiktok";
 
     @context_menu({
         name: "Convert 📸",
-        dmPermission: true,
         integration_types: [0, 1],
         contexts: [0, 1, 2],
     })
@@ -196,7 +227,6 @@ export default class TikTok extends Extension {
         ],
         integration_types: [0, 1],
         contexts: [0, 1, 2],
-        dmPermission: true,
     })
     async tiktok(ctx: SlashCommandContext): Promise<void> {
         const link = ctx.getOption("link") as APIInteractionDataOptionBase<3, string>;

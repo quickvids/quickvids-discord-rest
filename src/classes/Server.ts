@@ -34,21 +34,19 @@ const rateLimitConfig: RateLimitOptions = {
 
 export default class Server {
     port: number;
-    console: Logger;
     router: FastifyInstance;
     database: Database;
     client: Client;
 
     constructor(port: number, database: Database, client: Client) {
         this.port = port;
-        this.console = new Logger("Server");
         this.router = fastify({ logger: false, trustProxy: true });
         this.client = client;
         this.database = database;
     }
 
     async start(): Promise<void> {
-        this.console.info("Starting server...");
+        console.info("Starting server...");
         await this.database.start();
         this.client.start();
 
@@ -57,7 +55,7 @@ export default class Server {
 
         this.router.listen({ port: this.port, host: "0.0.0.0" }, (err, address) => {
             if (err) throw err;
-            this.console.success(`Listening for requests at ${address}!`);
+            console.log(`Listening for requests at ${address}!`);
         });
     }
 

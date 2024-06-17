@@ -11,7 +11,6 @@ export class InteractionCommand {
     name: string;
     scopes: Snowflake[];
     defaultMemberPermissions: Permission[] | null;
-    dmPermission: boolean;
     description: string = "No description set";
     nsfw: boolean;
     callback?: (ctx: any) => Promise<void>;
@@ -22,7 +21,6 @@ export class InteractionCommand {
     constructor(
         name: string,
         defaultMemberPermissions: Permission[] | null,
-        dmPermission: boolean = false,
         nsfw?: boolean,
         description?: string,
         scopes?: Snowflake[],
@@ -34,7 +32,6 @@ export class InteractionCommand {
         this.name = name;
         this.scopes = scopes || [];
         this.defaultMemberPermissions = defaultMemberPermissions || null;
-        this.dmPermission = dmPermission;
         this.nsfw = nsfw || false;
         this.description = description || this.description;
         this.extension = extension;
@@ -63,7 +60,6 @@ export class SlashCommand extends InteractionCommand {
         description: string,
         options: APIApplicationCommandOption[] | null,
         defaultMemberPermissions: Permission[] | null,
-        dmPermission: boolean,
         nsfw: boolean,
         scopes?: Snowflake[],
         extension?: Extension,
@@ -75,7 +71,6 @@ export class SlashCommand extends InteractionCommand {
         super(
             name,
             defaultMemberPermissions,
-            dmPermission,
             nsfw,
             description,
             scopes,
@@ -169,7 +164,6 @@ export class ContextMenuCommand extends InteractionCommand {
     constructor(
         name: string,
         defaultMemberPermissions: Permission[] | null,
-        dmPermission: boolean,
         nsfw: boolean,
         description: string,
         scopes?: Snowflake[],
@@ -181,7 +175,6 @@ export class ContextMenuCommand extends InteractionCommand {
         super(
             name,
             defaultMemberPermissions,
-            dmPermission,
             nsfw,
             description,
             scopes,

@@ -1,3 +1,4 @@
+import { ApplicationIntegrationType as IntegrationType, InteractionContextType as CtxType } from "discord-api-types/v10";
 import { SlashCommandContext } from "../classes/CommandContext";
 import Extension, { slash_command } from "../classes/Extension";
 
@@ -7,6 +8,8 @@ export default class Info extends Extension {
     @slash_command({
         name: "info",
         description: "Get some general information and statistics about QuickVids.",
+        integration_types: [IntegrationType.GuildInstall, IntegrationType.UserInstall],
+        contexts: [CtxType.BotDM, CtxType.Guild, CtxType.PrivateChannel]
     })
     async info(ctx: SlashCommandContext): Promise<void> {
         return ctx.reply("🚧 This command is being worked on. 🏗️", { ephemeral: true });

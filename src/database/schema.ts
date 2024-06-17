@@ -4,19 +4,33 @@ import { EmbedMethod } from "../types/discord";
 
 mongooseLong(mongoose);
 
-const shortenerSchema = new Schema(
+export interface Shortener {
+    slug: string;
+    aweme_id: string;
+    type: number;
+    douyin: boolean;
+    file_id: string;
+    image_uris: string[];
+    video_id: string;
+    signaturev3: string;
+}
+
+const shortenerSchema = new Schema<Shortener>(
     {
-        video_id: { type: String, required: true, unique: true },
-        file_id: { type: String, required: false, default: "" },
-        video_uri: { type: String, required: false, default: "" },
         slug: { type: String, required: true, unique: true },
-        douyin: { type: Boolean, required: false, default: false },
+        aweme_id: { type: String, required: true, unique: true},
+        type: { type: Number, required: false, default: 0},
+        douyin: { type: Boolean, required: true, default: false },
+        file_id: { type: String, required: false },
+        image_uris: { type: [String], required: false },
+        video_id: { type: String, required: false },
+        signaturev3: { type: String, required: false },
     },
-    { collection: "Shortener", versionKey: false }
+    { collection: "ShortenerNew", versionKey: false }
 );
 
-export type Shortener = mongoose.InferSchemaType<typeof shortenerSchema>;
-export const Shortener = mongoose.model("Shortener", shortenerSchema);
+
+export const Shortener = mongoose.model<Shortener>("Shortener", shortenerSchema);
 
 const botStatsSchema = new Schema(
     {

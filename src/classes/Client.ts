@@ -33,7 +33,6 @@ export default class Client {
     componentCallbacks: ComponentCallback[];
     database: Database;
     ttrequester: TTRequester;
-    console: Logger;
     topggToken: string | null;
     rawCommands: APIApplicationCommand[] = [];
 
@@ -74,7 +73,6 @@ export default class Client {
         this.functions = functions;
         this.commands = [];
         this.componentCallbacks = [];
-        this.console = new Logger("Client");
         this.database = database;
         this.topggToken = topggToken || null;
         this.ttrequester = ttrequester;
@@ -102,7 +100,7 @@ export default class Client {
 
         if (response.ok) {
             const data = await response.json();
-            this.console.log(data);
+            console.log(data);
             return data as BotVote;
         } else {
             return null;
@@ -132,12 +130,12 @@ export default class Client {
     async handleCommand(ctx: ContextMenuContext | SlashCommandContext) {
         const command = this.commands.find((c) => c.name === ctx.command.name);
         if (!command)
-            return this.console.error(
+            return console.error(
                 `Command ${ctx.command.name} was run with no corresponding command file.`
             );
 
         if (!command.callback)
-            return this.console.error(
+            return console.error(
                 `Command ${ctx.command.name} was run with no corresponding callback function.`
             );
 
@@ -145,7 +143,7 @@ export default class Client {
             await command.callback(ctx);
         } catch (err) {
             console.error(err);
-            // this.console.error(err);
+            // console.error(err);
             const error_code = "hDFPRERTpb";
             await ctx.reply(
                 `Uh oh. An unepected error occured. Please join our [Support Server](<https://discord.gg/${error_code}>) and report this error.\n\nError Code: \`${error_code}\``,
@@ -158,49 +156,49 @@ export default class Client {
         const commandName = ctx.data?.name;
         const command = this.commands.find((c) => c.name === commandName) as SlashCommand;
         if (!command)
-            return this.console.error(
+            return console.error(
                 `Command /${commandName}'s autocomplete was run with no corresponding command file.`
             );
 
         try {
             await command.autocomplete(ctx);
         } catch (err) {
-            this.console.error(err);
+            console.error(err);
         }
     }
 
     async handleButton(ctx: ButtonContext) {
         const callback = this.getComponentCallback(ctx.custom_id) as ComponentCallback;
         if (!callback || !callback.callback)
-            return this.console.error(
+            return console.error(
                 `Button ${ctx.custom_id} was run with no corresponding callback function.`
             );
 
         try {
             await callback.callback(ctx);
         } catch (err) {
-            this.console.error(err);
+            console.error(err);
         }
     }
 
     async handleModal(ctx: ModalContext) {
         const callback = this.getComponentCallback(ctx.custom_id) as ComponentCallback;
         if (!callback || !callback.callback)
-            return this.console.error(
+            return console.error(
                 `Modal ${ctx.custom_id} was run with no corresponding callback function.`
             );
 
         try {
             await callback.callback(ctx);
         } catch (err) {
-            this.console.error(err);
+            console.error(err);
         }
     }
 
     async start() {
-        this.console.log(`Using API URL: ${this.discordAPIUrl}`);
+        console.log(`Using API URL: ${this.discordAPIUrl}`);
         await this.loadCommands();
-        this.console.success(`Loaded ${this.commands.length} commands!`);
+        console.log(`Loaded ${this.commands.length} commands!`);
     }
 
     async loadCommands() {
@@ -213,9 +211,9 @@ export default class Client {
             const extension = new (
                 await import(`../extensions/${commandFileName}`)
             ).default() as Extension;
-            this.console.log(`Loaded command ${extension.name}`);
+            console.log(`Loaded command ${extension.name}`);
             this.commands.push(...extension.commands.values());
-            this.console.log(`Loaded ${extension.components} components`);
+            console.log(`Loaded ${extension.components} components`);
             this.componentCallbacks.push(...extension.components.values());
 
             for (const command of extension.commands.values()) {
@@ -237,23 +235,23 @@ export default class Client {
         return
         const devMode = process.argv.includes("dev");
         if (devMode)
-            this.console.log(
+            console.log(
                 "Global Commands: " +
-                    ((await this.compareCommands(globalCommands))
+                    ((await this.compareCommands(globalInteractions))
                         ? "Changes detected"
                         : "No changes detected")
             );
-        else await this.updateCommands(globalCommands);
+        else await this.updateCommands(globalInteractions);
 
-        for (const guildId in guildOnly) {
+        for (const guildId in guildInteractions) {
             if (devMode)
-                this.console.log(
-                    `GuildOnly Commands (${guildId}): ` +
-                        ((await this.compareCommands(guildOnly[guildId], guildId))
+                console.log(
+                    `guildInteractions Commands (${guildId}): ` +
+                        ((await this.compareCommands(guildInteractions[guildId], guildId))
                             ? "Changes detected"
                             : "No changes detected")
                 );
-            else await this.updateCommands(guildOnly[guildId], guildId);
+            else await this.updateCommands(guildInteractions[guildId], guildId);
         }
 
         // propogate the id field to the commands
@@ -267,8 +265,8 @@ export default class Client {
     async updateCommands(commands: InteractionCommand[], guildId?: string) {
         // console.log("paused");
         // return
-        if (!(await this.compareCommands(commands, guildId))) return;
-        this.console.log("Updating commands...");
+        // if (!(await this.compareCommands(commands, guildId))) return;
+        console.log("Updating commands...");
 
         const commandsData = commands.map(this.convertCommandToDiscordFormat).filter(Boolean);
 
@@ -287,7 +285,7 @@ export default class Client {
         );
 
         if (!newCommands.ok) {
-            this.console.error(
+            console.error(
                 `Failed to update ${
                     commandsData.length
                 } slash commands: ${await newCommands.text()}`
@@ -298,7 +296,7 @@ export default class Client {
             this.rawCommands = newCommandsData;
         }
 
-        this.console.success(`Updated ${commandsData.length} slash commands`);
+        console.log(`Updated ${commandsData.length} slash commands`);
     }
 
     /**
@@ -321,12 +319,12 @@ export default class Client {
         );
 
         if (response.ok) {
-            // this.console.log(JSON.stringify(commands));
-            // this.console.log(JSON.stringify(await response.json()));
+            // console.log(JSON.stringify(commands));
+            // console.log(JSON.stringify(await response.json()));
 
             const commandList = (await response.json()) as APIApplicationCommand[];
             this.rawCommands = commandList;
-            this.console.log(JSON.stringify(commandList));
+            console.log(JSON.stringify(commandList));
 
             // Compare the fetched commands with the provided commands
             return commands.some((_internalCommand) => {
@@ -339,12 +337,12 @@ export default class Client {
                 const internalCommand = this.convertCommandToDiscordFormat(_internalCommand);
 
                 if (internalCommand.type !== matchingCommand.type) {
-                    this.console.log("Type is different");
+                    console.log("Type is different");
                     return true;
                 }
 
                 if (internalCommand.dm_permission !== matchingCommand.dm_permission) {
-                    this.console.log("dm_permission is different");
+                    console.log("dm_permission is different");
                     return true;
                 }
 
@@ -352,12 +350,12 @@ export default class Client {
                     internalCommand.default_member_permissions !==
                     matchingCommand.default_member_permissions
                 ) {
-                    this.console.log("default_member_permissions is different");
+                    console.log("default_member_permissions is different");
                     return true;
                 }
 
                 if (internalCommand.nsfw !== matchingCommand.nsfw) {
-                    this.console.log("nsfw is different");
+                    console.log("nsfw is different");
                     return true;
                 }
 
@@ -401,7 +399,6 @@ export default class Client {
 
             toReturn.description = _command.description || "No description set";
             toReturn.nsfw = _command.nsfw ?? false;
-            toReturn.dm_permission = _command.dmPermission;
             if (_command.options) {
                 toReturn.options = _command.options;
             }
@@ -412,7 +409,6 @@ export default class Client {
         } else if (command.type === ApplicationCommandType.Message) {
             let _command = command as ContextMenuCommand;
 
-            toReturn.dm_permission = _command.dmPermission;
             toReturn.nsfw = _command.nsfw ?? false;
 
             return toReturn;
@@ -517,7 +513,7 @@ export default class Client {
             if (topggPremium) {
                 if (topgg_can_count) return true;
             } else if (topggPremium === null) {
-                this.console.warn(`Failed to check if ${ctx.authorID} voted on top.gg`);
+                console.warn(`Failed to check if ${ctx.authorID} voted on top.gg`);
                 if (topgg_can_count) return true;
             }
         }

@@ -37,19 +37,17 @@ export function slash_command({
     description,
     options = null,
     defaultMemberPermissions = null,
-    dmPermission = false,
     nsfw = false,
     scopes = [],
     autocompleteCallbacks = null,
     extension,
-    integration_types,
-    contexts
+    integration_types = [0],
+    contexts = [0]
 }: {
     name: string;
     description: string;
     options?: APIApplicationCommandOption[] | null;
     defaultMemberPermissions?: Permission[] | null;
-    dmPermission?: boolean;
     nsfw?: boolean;
     scopes?: Snowflake[];
     autocompleteCallbacks?: AutocompleteCallback[] | null;
@@ -63,7 +61,6 @@ export function slash_command({
             description,
             options,
             defaultMemberPermissions,
-            dmPermission,
             nsfw,
             scopes,
             extension,
@@ -87,7 +84,6 @@ export function slash_command({
 
 // name: string,
 // defaultMemberPermissions: Permission[] | null,
-// dmPermission: boolean,
 // nsfw: boolean,
 // scopes?: Snowflake[],
 // extension?: Extension,
@@ -98,18 +94,15 @@ export function slash_command({
 export function context_menu({
     name,
     defaultMemberPermissions = null,
-    dmPermission = false,
     nsfw = false,
     description = "No description set",
     scopes = [],
     extension,
     integration_types,
     contexts
-
 }: {
     name: string;
     defaultMemberPermissions?: Permission[] | null;
-    dmPermission?: boolean;
     nsfw?: boolean;
     description?: string;
     scopes?: Snowflake[];
@@ -121,7 +114,6 @@ export function context_menu({
         const command = new ContextMenuCommand(
             name,
             defaultMemberPermissions,
-            dmPermission,
             nsfw,
             description,
             scopes,

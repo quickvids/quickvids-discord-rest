@@ -1,18 +1,16 @@
 import { parse } from "lossless-json";
-import { createShortUrl, getQueryParamValue } from "./Functions";
+import { getQueryParamValue } from "./Functions";
 import Logger from "./Logger";
 
 export default class TTRequester {
     apiKey: string;
     apiUrlBase: string;
     createShortUrls: boolean;
-    console: Logger;
 
     constructor(apiKey: string, apiUrlBase: string, createShortUrl = false) {
         this.apiKey = apiKey;
         this.apiUrlBase = `${apiUrlBase}/v1`;
         this.createShortUrls = createShortUrl;
-        this.console = new Logger("TTRequester");
     }
 
     async request(
@@ -29,7 +27,7 @@ export default class TTRequester {
         };
         const reqBody = body ? JSON.stringify(body) : undefined;
 
-        this.console.log(`Sending ${method} request to ${url}`);
+        console.log(`Sending ${method} request to ${url}`);
 
         const response = await fetch(url, {
             method,
@@ -117,11 +115,11 @@ export default class TTRequester {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        input_text: `https://m.tiktok.com/v/${postId}`
+                        input_text: `https://m.tiktok.com/v/${postId}`,
+                        detailed: false
                     }),
                 }
             )
-
 
             if (data.status !== 200) {
                 const error_code = "WrkKanvMfC";
@@ -148,7 +146,7 @@ export default class TTRequester {
     }
 
     async fetchMusicInfo(musicId: string | number): Promise<any | null> {
-        this.console.log(`Fetching music info | Music ID: ${musicId}`);
+        console.log(`Fetching music info | Music ID: ${musicId}`);
         let data: null | any = null;
         try {
             data = await this.request("POST", "/music/detail/", {
@@ -171,7 +169,7 @@ export default class TTRequester {
                 );
             }
         } catch (e) {
-            this.console.error(`Failed to fetch music info: ${musicId} | ${e}`);
+            console.error(`Failed to fetch music info: ${musicId} | ${e}`);
             return null;
         }
 
@@ -179,19 +177,19 @@ export default class TTRequester {
     }
 
     async fetchUserIds(uniqueId: string): Promise<{ uid: string; secUid: string } | null> {
-        this.console.log(`Fetching user ids | Unique ID: ${uniqueId}`);
+        console.log(`Fetching user ids | Unique ID: ${uniqueId}`);
         let data: null | any = null;
         try {
             data = await this.request("POST", "/user/ids", { unique_id: uniqueId });
         } catch (e) {
-            this.console.error(`Failed to fetch user ids: ${uniqueId} | ${e}`);
+            console.error(`Failed to fetch user ids: ${uniqueId} | ${e}`);
             return null;
         }
 
         if (!data.uid) {
             return null;
         }
-        this.console.log(`Fetched user ids | Unique ID: ${uniqueId} | UID: ${data.uid}`);
+        console.log(`Fetched user ids | Unique ID: ${uniqueId} | UID: ${data.uid}`);
         return {
             uid: String(data.uid),
             secUid: data.sec_uid,
@@ -232,12 +230,12 @@ export default class TTRequester {
         }
 
         const id = userId || secUid;
-        this.console.log(`Fetching user | ID: ${id}`);
+        console.log(`Fetching user | ID: ${id}`);
         let data: null | any = null;
         try {
             data = await this.request("GET", `/user/${id}`);
         } catch (e) {
-            this.console.error(`Failed to fetch user: ${userId || secUid || uniqueId} | ${e}`);
+            console.error(`Failed to fetch user: ${userId || secUid || uniqueId} | ${e}`);
             return null;
         }
 
