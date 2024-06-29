@@ -607,6 +607,7 @@ export async function insertEmbedLog({
             // NOTE: A user's logs are a list of ObjectIds, so we need to use a separate list for embed logs.
             if (user.log_usage_data !== undefined && user.log_usage_data === false) {
                 userId = null;
+                channelId = "unknown";
             }
         }
     }
@@ -629,3 +630,4 @@ export async function insertEmbedLog({
         await user.save();
     }
 }
+
