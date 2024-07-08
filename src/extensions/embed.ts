@@ -61,6 +61,7 @@ async function validateAndGenerate({
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${process.env.QUICKVIDS_API_TOKEN}`,
+                "User-Agent": "QuickVids Rest Bot/1.0",
             },
             body: JSON.stringify({
                 input_text: content,
