@@ -6,16 +6,18 @@ x-environment: &environment
   DISCORD_TOKEN: ${DISCORD_TOKEN}
   MONGODB_URI: ${MONGODB_URI}
   MONGODB_DBNAME: ${MONGODB_DBNAME}
+  PORT: ${PORT}
   API_BASE_URL: ${API_BASE_URL}
   API_TOKEN: ${API_TOKEN}
   WEB_BASE_URL: ${WEB_BASE_URL}
   GATEWAY_SECRET: ${GATEWAY_SECRET}
+  EXTERNAL_TT_API_URL: ${EXTERNAL_TT_API_URL}
+  EXTERNAL_TT_API_KEY: ${EXTERNAL_TT_API_KEY}
   TOPGG_TOKEN: ${TOPGG_TOKEN}
-  PORT: "38572"
 
 services:
   quickvids-discord-rest:
-    image: docker.aidenhaines.com/quickvids-discord-rest
+    image: registry.wolfhound.dev/quickvids-discord-rest
     environment:
       <<: *environment
     ports:
