@@ -12,7 +12,7 @@ export const {
     MONGODB_DBNAME,
     TOPGG_TOKEN,
     API_BASE_URL,
-    API_TOKEN,
+    QUICKVIDS_API_TOKEN,
     WEB_BASE_URL,
     GATEWAY_SECRET,
     EXTERNAL_TT_API_URL,
@@ -26,7 +26,7 @@ if (!DISCORD_TOKEN) throw new Error("DISCORD_TOKEN is not defined!");
 if (!MONGODB_URI) throw new Error("MONGODB_URI is not defined!");
 if (!MONGODB_DBNAME) throw new Error("MONGODB_DBNAME is not defined!");
 if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined!");
-if (!API_TOKEN) throw new Error("API_TOKEN is not defined!");
+if (!QUICKVIDS_API_TOKEN) throw new Error("QUICKVIDS_API_TOKEN is not defined!");
 if (!WEB_BASE_URL) throw new Error("WEB_BASE_URL is not defined!");
 if (!GATEWAY_SECRET) throw new Error("GATEWAY_SECRET is not defined!");
 if (!EXTERNAL_TT_API_URL) throw new Error("EXTERNAL_TT_API_URL is not defined!");

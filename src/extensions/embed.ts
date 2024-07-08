@@ -38,10 +38,12 @@ async function validateAndGenerate({
     spoiler: boolean;
     ephemeral?: boolean;
 }): Promise<void> {
-    const linkData = await checkForTikTokLink(content, true);
 
-    if (linkData === null) {
-        return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
+    // dumb check, if tiktok.com or instagram.com is not in the content, return an error
+    const supported_tlds = ["tiktok.com", "instagram.com"];
+
+    if (!supported_tlds.some((tld) => content.includes(tld))) {
+        return ctx.friendlyError("We did not see a valid TikTok or Instagram link.", "7nVqDXkrHG");
     }
 
     let guildConfig: GuildConfigModel;
@@ -52,73 +54,54 @@ async function validateAndGenerate({
         guildConfig = await getGuildConfig(ctx.guildId!);
     }
 
-    if (linkData.type === MediaType.TikTokUser) {
+    const data = await fetch(
+        `${process.env.API_BASE_URL}/v2/quickvids/shorturl`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.QUICKVIDS_API_TOKEN}`,
+            },
+            body: JSON.stringify({
+                input_text: content,
+                detailed: true
+            }),
+        }
+    )
+
+    if (data.status !== 200) {
+        const error_code = "WrkKanvMfC";
         return ctx.friendlyError(
-            "At this time, we do not support TikTok user links. Suggest a use case in our support server!",
-            "b7ZHXYyeEB"
+            `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            error_code
         );
-    } else if (linkData.type === MediaType.UNKNOWN) {
-        return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
     }
 
-    let qv_short_url: string | null = null;
+    const shorturl_response: any = await data.json();
 
-    const existingLink = await checkExistingQVShortUrl(linkData.id);
+    if (shorturl_response.quickvids_url === undefined) {
+        const error_code = "WrkKanvMfC";
+        return ctx.friendlyError(
+            `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            error_code
+        );
+    }
 
-    if (existingLink !== null && guildConfig.markdown_links === false) {
-        qv_short_url = existingLink;
+    const qv_short_url = shorturl_response.quickvids_url;
+    const video_id = shorturl_response.details.post.id;
+    // Video type  = shorturl_response.details.post.type starts with tt_ or ig_
+    let video_type: string;
+    if (shorturl_response.type.startsWith("tt_")) {
+        video_type = "tiktok";
+    } else if (shorturl_response.type.startsWith("ig_")) {
+        video_type = "instagram";
     } else {
-        // const tiktokData = await ctx.client.ttrequester.fetchPostInfo(linkData.id);
-
-        // if (tiktokData === null) {
-        //     return ctx.friendlyError("We did not see a valid TikTok link.", "7nVqDXkrHG");
-        // } else if (tiktokData instanceof Error) {
-        //     return ctx.reply(tiktokData.message, {
-        //         ephemeral: true,
-        //     });
-        // }
-
-        // qv_short_url = tiktokData.qv_short_url;
-        const data = await fetch(
-            `${process.env.API_BASE_URL}/v2/quickvids/shorturl`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    input_text: `https://m.tiktok.com/v/${linkData.id}`,
-                    detailed: false
-                }),
-            }
-        )
-
-        if (data.status !== 200) {
-            const error_code = "WrkKanvMfC";
-            return ctx.friendlyError(
-                `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
-                error_code
-            );
-        }
-
-        const shorturl_response: any = await data.json();
-
-        if (shorturl_response.quickvids_url === undefined) {
-            const error_code = "WrkKanvMfC";
-            return ctx.friendlyError(
-                `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
-                error_code
-            );
-        }
-
-        qv_short_url = shorturl_response.quickvids_url;
+        video_type = "unknown";
+        throw new Error("Unknown video type???");
     }
 
-    if (qv_short_url === null) {
-        return ctx.friendlyError("Something went wrong. Please try again later.", "7nVqDXkrHG");
-    }
 
-    const messageTemplate = linkData.spoiler || spoiler ? "|| {url} ||" : "{url}";
+    const messageTemplate = spoiler ? "|| {url} ||" : "{url}";
 
     let method: EmbedMethod;
     switch (ctx.rawInteraction.data.type) {
@@ -137,7 +120,7 @@ async function validateAndGenerate({
         method: method,
         guildId: ctx.guildId ?? "0",
         channelId: ctx.channelId,
-        videoId: linkData.id,
+        videoId: video_id,
         userId: ctx.authorID,
     });
 
@@ -149,7 +132,7 @@ async function validateAndGenerate({
             emoji: {
                 name: "🌐",
             },
-            custom_id: `v_id${linkData.id}`,
+            custom_id: `v_id${video_id}`,
         },
         {
             type: ComponentType.Button,
@@ -165,7 +148,15 @@ async function validateAndGenerate({
         // remove the delete button
         components.pop();
     }
-    console.log(`Embedding: ${linkData.id} | ${qv_short_url} | User: ${ctx.authorID}`);
+
+    if (video_type === "instagram") {
+        // remove the info button
+        components.shift();
+    }
+
+    console.log(`Embedding: ${video_id} | ${qv_short_url} | User: ${ctx.authorID}`);
+
+
     return ctx.reply(
         {
             content: messageTemplate.replace("{url}", qv_short_url),
@@ -202,6 +193,7 @@ export default class TikTok extends Extension {
         });
     }
 
+
     @slash_command({
         name: "tiktok",
         description: "Convert a TikTok link into a video.",
@@ -229,6 +221,47 @@ export default class TikTok extends Extension {
         contexts: [0, 1, 2],
     })
     async tiktok(ctx: SlashCommandContext): Promise<void> {
+
+        const link = ctx.getOption("link") as APIInteractionDataOptionBase<3, string>;
+        const spoiler = ctx.getOption("spoiler") as APIInteractionDataOptionBase<5, boolean>;
+        const hidden = ctx.getOption("hidden") as APIInteractionDataOptionBase<5, boolean>;
+
+        await validateAndGenerate({
+            ctx,
+            content: link.value,
+            spoiler: spoiler === undefined ? false : spoiler.value, // If the spoiler option is not provided, set it to false.
+            ephemeral: hidden === undefined ? false : hidden.value,
+        });
+    }
+
+
+    @slash_command({
+        name: "instagram",
+        description: "Convert a Instagram link into a video.",
+        options: [
+            {
+                name: "link",
+                description: "The Instagram link to convert.",
+                type: 3,
+                required: true,
+            },
+            {
+                name: "spoiler",
+                description: "Whether or not to spoiler the video.",
+                type: 5,
+                required: false,
+            },
+            {
+                name: "hidden",
+                description: "Whether or not to make this output visible only to you.",
+                type: 5,
+                required: false,
+            },
+        ],
+        integration_types: [0, 1],
+        contexts: [0, 1, 2],
+    })
+    async tiktok_wrapper(ctx: SlashCommandContext): Promise<void> {
         const link = ctx.getOption("link") as APIInteractionDataOptionBase<3, string>;
         const spoiler = ctx.getOption("spoiler") as APIInteractionDataOptionBase<5, boolean>;
         const hidden = ctx.getOption("hidden") as APIInteractionDataOptionBase<5, boolean>;

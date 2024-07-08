@@ -74,7 +74,7 @@ export function slash_command({
         }
         descriptor.value = async function (ctx: SlashCommandContext) {
             // Add your logic here...
-            console.log(ctx);
+            // console.log(ctx);
         };
         target.commands.set(name, command);
 
