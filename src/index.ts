@@ -1,3 +1,4 @@
+import { EmbedEZ } from "embedez.ts";
 import Client from "./classes/Client";
 import Database from "./classes/Database";
 import Server from "./classes/Server";
@@ -16,7 +17,7 @@ export const {
     WEB_BASE_URL,
     GATEWAY_SECRET,
     EXTERNAL_TT_API_URL,
-    EXTERNAL_TT_API_KEY
+    EXTERNAL_TT_API_KEY,
 } = process.env;
 
 if (!PORT) throw new Error("PORT is not defined!");
@@ -34,6 +35,10 @@ if (!EXTERNAL_TT_API_KEY) throw new Error("EXTERNAL_TT_API_KEY is not defined!")
 
 const database = new Database(MONGODB_URI, MONGODB_DBNAME);
 const ttrequester = new TTRequester(EXTERNAL_TT_API_KEY, EXTERNAL_TT_API_URL, true);
+
+EmbedEZ.setConfig({
+    apiKey: process.env.EZ_AUTH_TOKEN,
+});
 
 const client = new Client(
     APPLICATION_ID,
