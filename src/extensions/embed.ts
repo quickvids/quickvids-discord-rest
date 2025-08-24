@@ -26,6 +26,7 @@ import {
 } from "../classes/Functions";
 import { GuildConfig as GuildConfigModel } from "../database/schema";
 import { EmbedMethod } from "../types/discord";
+import { EmbedEZ } from "embedez.ts";
 
 async function validateAndGenerate({
     ctx,
@@ -38,12 +39,8 @@ async function validateAndGenerate({
     spoiler: boolean;
     ephemeral?: boolean;
 }): Promise<void> {
-
-    // dumb check, if tiktok.com or instagram.com is not in the content, return an error
-    const supported_tlds = ["tiktok.com", "instagram.com"];
-
-    if (!supported_tlds.some((tld) => content.includes(tld))) {
-        return ctx.friendlyError("We did not see a valid TikTok or Instagram link.", "7nVqDXkrHG");
+    if (!EmbedEZ.utils.checkForSocialMediaContent(content)) {
+        return ctx.friendlyError("We did not see a valid social media link.", "7nVqDXkrHG");
     }
 
     let guildConfig: GuildConfigModel;
@@ -54,53 +51,40 @@ async function validateAndGenerate({
         guildConfig = await getGuildConfig(ctx.guildId!);
     }
 
-    const data = await fetch(
-        `${process.env.API_BASE_URL}/v2/quickvids/shorturl`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.QUICKVIDS_API_TOKEN}`,
-                "User-Agent": "QuickVids Rest Bot/1.0",
-            },
-            body: JSON.stringify({
-                input_text: content,
-                detailed: true
-            }),
-        }
-    )
+    const embedezKey = await EmbedEZ.getSearchKey(content);
+    if (!embedezKey.success) {
+        return ctx.friendlyError(
+            `We were unable to fetch the TikTok video. Please check the link and try again.`,
+            "sWngEsstrV"
+        );
+    }
 
-    if (data.status !== 200) {
+    // stupid way to get direct media link
+    const directMedia = await EmbedEZ.getSearchKey(
+        embedezKey.data.originalUrl.replace("https://", "https://d.")
+    );
+    if (!directMedia.success) {
+        return ctx.friendlyError(
+            `We were unable to fetch the TikTok video. Please check the link and try again.`,
+            "sWngEsstrV"
+        );
+    }
+
+    const searchKey = directMedia.data.key;
+    const shorturl_response = await EmbedEZ.getPreview(searchKey);
+
+    if (!shorturl_response.success) {
         const error_code = "WrkKanvMfC";
         return ctx.friendlyError(
-            `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
+            `Failed to get posts data. ${shorturl_response.message}. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
             error_code
         );
     }
 
-    const shorturl_response: any = await data.json();
-
-    if (shorturl_response.quickvids_url === undefined) {
-        const error_code = "WrkKanvMfC";
-        return ctx.friendlyError(
-            `Sorry, there was an error creating a short url for that tiktok post. Please join the support server for help. [Support Server](<https://discord.gg/${error_code}>)\n\nError Code: \`${error_code}\``,
-            error_code
-        );
-    }
-
-    const qv_short_url = shorturl_response.quickvids_url;
-    const video_id = shorturl_response.details.post.id;
-    // Video type  = shorturl_response.details.post.type starts with tt_ or ig_
-    let video_type: string;
-    if (shorturl_response.type.startsWith("tt_")) {
-        video_type = "tiktok";
-    } else if (shorturl_response.type.startsWith("ig_")) {
-        video_type = "instagram";
-    } else {
-        video_type = "unknown";
-        throw new Error("Unknown video type???");
-    }
-
+    const content_url =
+        shorturl_response.data.shareUrl?.replace("https://", "https://d.") ||
+        `https://embedez.com/embed/${searchKey}`;
+    const video_id = searchKey;
 
     const messageTemplate = spoiler ? "|| {url} ||" : "{url}";
 
@@ -143,38 +127,31 @@ async function validateAndGenerate({
             },
             custom_id: `delete${ctx.authorID}`,
         },
-    ]
+    ];
 
     if (ctx.context && ctx.context === InteractionContextType.PrivateChannel) {
         // remove the delete button
         components.pop();
     }
 
-    if (video_type === "instagram") {
-        // remove the info button
-        components.shift();
-    }
-
-    console.log(`Embedding: ${video_id} | ${qv_short_url} | User: ${ctx.authorID}`);
-
+    console.log(`Embedding: ${video_id} | ${content_url} | User: ${ctx.authorID}`);
 
     return ctx.reply(
         {
-            content: messageTemplate.replace("{url}", qv_short_url),
+            content: messageTemplate.replace("{url}", content_url),
             // @ts-ignore
             components: guildConfig.show_buttons
                 ? [
-                    {
-                        type: ComponentType.ActionRow,
-                        components: components,
-                    },
-                ]
+                      {
+                          type: ComponentType.ActionRow,
+                          components: components,
+                      },
+                  ]
                 : [],
         },
         { ephemeral: ephemeral }
     );
 }
-
 
 export default class TikTok extends Extension {
     name = "tiktok";
@@ -193,7 +170,6 @@ export default class TikTok extends Extension {
             spoiler: false,
         });
     }
-
 
     @slash_command({
         name: "tiktok",
@@ -222,7 +198,6 @@ export default class TikTok extends Extension {
         contexts: [0, 1, 2],
     })
     async tiktok(ctx: SlashCommandContext): Promise<void> {
-
         const link = ctx.getOption("link") as APIInteractionDataOptionBase<3, string>;
         const spoiler = ctx.getOption("spoiler") as APIInteractionDataOptionBase<5, boolean>;
         const hidden = ctx.getOption("hidden") as APIInteractionDataOptionBase<5, boolean>;
@@ -234,7 +209,6 @@ export default class TikTok extends Extension {
             ephemeral: hidden === undefined ? false : hidden.value,
         });
     }
-
 
     @slash_command({
         name: "instagram",
@@ -276,7 +250,7 @@ export default class TikTok extends Extension {
     }
 
     // fav
-    @persistent_component({ custom_id: /^fav\d+$/ })
+    @persistent_component({ custom_id: /^fav(\d+|search_[a-zA-Z0-9]+)$/ })
     async fav(ctx: ButtonContext): Promise<void> {
         await ctx.defer({ ephemeral: true, edit_origin: true });
         const id = ctx.custom_id.replace("fav", "");
@@ -305,7 +279,7 @@ export default class TikTok extends Extension {
     }
 
     // unfav
-    @persistent_component({ custom_id: /^unfav\d+$/ })
+    @persistent_component({ custom_id: /^unfav(\d+|search_[a-zA-Z0-9]+)$/ })
     async unfav(ctx: ButtonContext): Promise<void> {
         await ctx.defer({ ephemeral: true, edit_origin: true });
         const id = ctx.custom_id.replace("unfav", "");
@@ -334,7 +308,7 @@ export default class TikTok extends Extension {
     }
 
     // delete
-    @persistent_component({ custom_id: /delete\d+/ })
+    @persistent_component({ custom_id: /delete(\d+|search_[a-zA-Z0-9]+)/ })
     async delete(ctx: ButtonContext): Promise<void> {
         const id = ctx.custom_id.replace("delete", "");
 
@@ -342,85 +316,90 @@ export default class TikTok extends Extension {
             return ctx.reply("You cannot delete someone else's message.", { ephemeral: true });
         }
 
-
         await ctx.client.deleteMessage({
             channel_id: ctx.data.message.channel_id,
             message_id: ctx.data.message.id,
         });
     }
 
-    @persistent_component({ custom_id: /v_id\d+/ })
+    @persistent_component({ custom_id: /v_id(\d+|search_[a-zA-Z0-9]+)/ })
     async info(ctx: ButtonContext): Promise<void> {
         ctx.defer({ ephemeral: true });
         const id = ctx.custom_id.replace("v_id", "");
 
         // fetch the tiktok and except any errors
-        const tiktokData = await ctx.client.ttrequester.fetchPostInfo(id);
+        const tiktokData = await EmbedEZ.getPreview(id);
 
-        if (tiktokData === null) {
+        if (!tiktokData.success && !tiktokData.message) {
             return ctx.friendlyError("We were unable to fetch the TikTok video.", "sWngEsstrV");
-        } else if (tiktokData instanceof Error) {
+        } else if (!tiktokData.success) {
             return ctx.reply(tiktokData.message, {
                 ephemeral: true,
             });
         }
 
-        let description = cleanDescription(
-            tiktokData.desc,
-            tiktokData.text_extra
-        );
+        let description = tiktokData.data.content.description;
 
-        if (description.cleaned.length > 256) {
-            description.cleaned = description.cleaned.slice(0, 253) + "...";
+        if (description && description?.length > 256) {
+            description = description.slice(0, 253) + "...";
         }
 
+        const profileUrlObject = tiktokData.data.user.pictures.url;
+        const profileUrl =
+            profileUrlObject && "url" in profileUrlObject ? profileUrlObject.url : "";
+
+        const thumbnailSourceThumbnail = tiktokData.data.content.media.find(
+            (m) => m.type === "photo" || m.thumbnail
+        );
+        const thumbnailObject =
+            thumbnailSourceThumbnail && "thumbnail" in thumbnailSourceThumbnail
+                ? thumbnailSourceThumbnail.thumbnail
+                : thumbnailSourceThumbnail?.source;
+
+        const thumbnailUrl =
+            thumbnailObject && "url" in thumbnailObject ? thumbnailObject.url : "";
+
         let embed: APIEmbed = {
-            title: description.cleaned,
+            title: description || "TikTok Video",
             description: "——————",
             color: 0x5865f2,
             author: {
-                name: tiktokData.author.nickname,
-                icon_url: tiktokData.author.avatar_thumb.url_list[0],
-                url: `https://tiktok.com/@${tiktokData.author.unique_id}`,
+                name: tiktokData.data.user.displayName,
+                icon_url: profileUrl,
             },
             thumbnail: {
-                url: tiktokData.video.cover.url_list[0],
+                url: thumbnailUrl || "https://embedez.com/favicon.png",
             },
             fields: [
                 {
                     name: "Views 👀",
-                    value: (+tiktokData.statistics.play_count).toLocaleString(),
+                    value: (+tiktokData.data.content.statistics.views).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Likes ❤️",
-                    value: (+tiktokData.statistics.digg_count).toLocaleString(),
+                    value: (+tiktokData.data.content.statistics.likes).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Comments 💬",
-                    value: (+tiktokData.statistics.comment_count).toLocaleString(),
+                    value: (+tiktokData.data.content.statistics.comments).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Shares 🔃",
-                    value: (+tiktokData.statistics.share_count).toLocaleString(),
-                    inline: true,
-                },
-                {
-                    name: "Downloads 📥",
-                    value: (+tiktokData.statistics.download_count).toLocaleString(),
+                    value: (+tiktokData.data.content.statistics.shares).toLocaleString(),
                     inline: true,
                 },
                 {
                     name: "Created 🕰️",
-                    value: `<t:${Math.floor(tiktokData.create_time)}:R>`,
+                    value: `<t:${Math.floor(new Date(tiktokData.data.content.postedDate || new Date()).getTime() / 1000)}:R>`,
                     inline: true,
                 },
             ],
         };
 
-        if (description.hashtags.length > 0) {
+       /*  if (description.hashtags.length > 0) {
             let tags: string = "";
 
             for (const tag of description.hashtags) {
@@ -439,7 +418,7 @@ export default class TikTok extends Extension {
                 inline: false,
             });
         }
-
+ */
         const usrFavorited = await checkUserFavorite(ctx.authorID, id);
 
         const whichFavBtn = usrFavorited ? "unfav" : "fav";
@@ -447,7 +426,7 @@ export default class TikTok extends Extension {
         return ctx.reply(
             {
                 embeds: [embed],
-                components: [
+                /* components: [
                     {
                         type: 1,
                         components: [
@@ -488,7 +467,7 @@ export default class TikTok extends Extension {
                             },
                         ],
                     },
-                ],
+                ], */
             },
             { ephemeral: true }
         );
@@ -498,7 +477,7 @@ export default class TikTok extends Extension {
     }
 
     // NOTE: Music button
-    @persistent_component({ custom_id: /m_id\d+/ })
+    @persistent_component({ custom_id: /m_id(\d+|search_[a-zA-Z0-9]+)/ })
     async music(ctx: ButtonContext): Promise<void> {
         ctx.defer({ ephemeral: true });
         const id = ctx.custom_id.replace("m_id", "");
