@@ -1,0 +1,98 @@
+name: "Build Quickvids Discord Bot"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+env:
+  CUSTOM_REPOSITORY: quickvids/quickvids-discord-rest
+  DEPLOY_PATH: quickvids
+  DOCKERFILE_PATH: ./apps/frontend/Dockerfile
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build_and_push_to_registry:
+    name: Docker Build and Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          echo "BRANCH_NAME=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+          echo "Working On ${{ env.BRANCH_NAME }}"
+
+      - name: Get the version
+        id: get_version
+        run: |
+          echo ::set-output name=VERSION::$(git rev-parse --short HEAD)
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: ${{ github.event_name != 'pull_request' }}
+          context: ./
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/${{ env.CUSTOM_REPOSITORY }}:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ env.CUSTOM_REPOSITORY }}:${{ env.BRANCH_NAME }}
+
+      - name: Checkout Infra Repository
+        uses: actions/checkout@v4
+        with:
+          repository: quickvids/quickvids-kubectl
+          ref: "main"
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: infrastructure
+
+      - name: Get Docker Image Digest
+        id: digest
+        run: |
+          IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/${{ env.CUSTOM_REPOSITORY }}:${{ steps.get_version.outputs.VERSION }})
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_ENV
+
+      - name: Update Deployment Manifests
+        run: |
+          echo "Updating deployment manifests in infrastructure/${{ env.DEPLOY_PATH }}:"
+          find infrastructure/${{ env.DEPLOY_PATH }} -name "*.yml" -o -name "*.yaml" | while read file; do
+            echo "Processing: $file"
+            sed -i "s|ghcr.io/${{ env.CUSTOM_REPOSITORY }}:[^ ]*|ghcr.io/${{ env.CUSTOM_REPOSITORY }}:${{ steps.get_version.outputs.VERSION }}|g" "$file"
+          done
+
+      - name: Stage and Commit Changes
+        run: |
+          cd infrastructure
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A ${{ env.DEPLOY_PATH }} 2>/dev/null || true
+          git status
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update image to version ${{ steps.get_version.outputs.VERSION }}"
+            # Try to push, but don't fail if it gets rejected
+            git pull --rebase origin main || true
+            git push origin main || echo "Non-fatal: push failed, probably due to race condition"
+          fi
