@@ -2,12 +2,12 @@ name: "Build Quickvids Discord Bot"
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
   pull_request:
-    branches: [main]
+    branches: [main, master]
     paths:
       - "src/**"
       - ".github/workflows/build.yml"
@@ -16,7 +16,7 @@ on:
 env:
   CUSTOM_REPOSITORY: quickvids/quickvids-discord-rest
   DEPLOY_PATH: quickvids
-  DOCKERFILE_PATH: ./apps/frontend/Dockerfile
+  DOCKERFILE_PATH: ./Dockerfile
 
 permissions:
   contents: read
